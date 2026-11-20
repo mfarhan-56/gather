@@ -20,6 +20,7 @@ from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .actions import router as actions_router
 from .brain import Brain, followup_message, run_agent, summarize
 from .llm import GroqClient, LLMError
 from .stt import STTStream
@@ -40,6 +41,7 @@ INTERVAL = float(os.getenv("ANALYSIS_INTERVAL_SECONDS", "12"))
 SOURCES = {0: "mic", 1: "system"}
 
 app = FastAPI(title="AETHER")
+app.include_router(actions_router)
 FRONTEND = ROOT / "frontend"
 
 
