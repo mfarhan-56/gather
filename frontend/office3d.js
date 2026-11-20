@@ -16,11 +16,11 @@ const MIN_WIDTH = 980;
 // Text alternates sides (see .station-left / .station-right); each object is framed on the opposite side.
 const SHOTS = {
   desk:     [[0.00, 1.50, 1.95], [-0.25, 0.80, -0.40]],  // text left  -> desk right
-  overview: [[-0.22, 1.40, 0.62], [-0.08, 0.74, -0.12]], // text right -> paper left
-  planner:  [[0.10, 1.40, 0.72], [-0.12, 0.75, 0.00]],   // text left  -> planner right
-  monitor:  [[0.52, 1.24, 0.34], [0.80, 1.00, -0.72]],   // text right -> monitor left
-  tray:     [[-0.86, 1.38, 0.30], [-1.30, 0.80, -0.58]], // text left  -> tray right
-  notes:    [[0.92, 1.38, 0.36], [1.36, 0.84, -0.50]],   // text right -> calendar left
+  overview: [[-0.50, 1.40, 0.62], [-0.76, 0.74, -0.12]], // text left  -> paper right
+  planner:  [[0.34, 1.40, 0.72], [0.54, 0.75, 0.00]],    // text right -> planner left
+  monitor:  [[0.22, 1.24, 0.40], [-0.02, 1.00, -0.72]],  // text left  -> monitor right
+  tray:     [[-1.02, 1.38, 0.30], [-0.62, 0.80, -0.58]], // text right -> tray left
+  notes:    [[0.94, 1.38, 0.38], [0.68, 0.84, -0.50]],   // text left  -> calendar right
 };
 
 let THREE, renderer, scene, camera, ready = false, failed = false;
@@ -87,7 +87,7 @@ function updateFromScroll() {
   const { list, f } = stationProgress();
   const active = Math.round(f);
   const cur = list[active];
-  view.dataset.side = "left";
+  if (cur) view.dataset.side = cur.classList.contains("station-right") ? "right" : "left";
   nav.querySelectorAll("button").forEach((b, i) => b.classList.toggle("active", i === active));
   list.forEach((s, i) => s.classList.toggle("in-focus", Math.abs(f - i) < 0.42));
   cue.classList.toggle("gone", view.scrollTop > 40);
