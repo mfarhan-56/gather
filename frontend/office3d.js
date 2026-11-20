@@ -24,9 +24,10 @@ const SHOTS = {
 };
 
 let THREE, renderer, scene, camera, ready = false, failed = false;
-const camPos = { x: 0, y: 0, z: 0 }, camLook = { x: 0, y: 0, z: 0 };
-const goalPos = { x: 0, y: 0, z: 0 }, goalLook = { x: 0, y: 0, z: 0 };
 let animating = false;
+let targetF = 0, currentF = 0, lastT = 0, introStart = 0;
+let pathKey = "", posCurve = null, lookCurve = null;
+const INTRO_MS = 1800;
 
 // ---------------------------------------------------------------- helpers
 const visibleStations = () => stationsEl.filter((s) => !s.hidden);
@@ -91,32 +92,64 @@ function updateFromScroll() {
   nav.querySelectorAll("button").forEach((b, i) => b.classList.toggle("active", i === active));
   list.forEach((s, i) => s.classList.toggle("in-focus", Math.abs(f - i) < 0.42));
   cue.classList.toggle("gone", view.scrollTop > 40);
-  if (!ready || mode() !== "cinematic" || !list.length) return;
-  const i = Math.min(Math.floor(f), list.length - 1), j = Math.min(i + 1, list.length - 1), t = f - i;
-  const A = SHOTS[list[i].dataset.station] || SHOTS.desk, B = SHOTS[list[j].dataset.station] || SHOTS.desk;
-  goalPos.x = lerp(A[0][0], B[0][0], t); goalPos.y = lerp(A[0][1], B[0][1], t); goalPos.z = lerp(A[0][2], B[0][2], t);
-  goalLook.x = lerp(A[1][0], B[1][0], t); goalLook.y = lerp(A[1][1], B[1][1], t); goalLook.z = lerp(A[1][2], B[1][2], t);
+  if (!ready || !list.length) return;
+  rebuildPath(list);
+  targetF = mode() === "cinematic" ? f : 0;
   kick();
+}
+
+// One smooth spline through the visible stations (no corners at each object).
+function rebuildPath(list) {
+  const key = list.map((s) => s.dataset.station).join(",");
+  if (key === pathKey && posCurve) return;
+  pathKey = key;
+  const shots = list.map((s) => SHOTS[s.dataset.station] || SHOTS.desk);
+  const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+  const pts = shots.map((x) => V(x[0])), looks = shots.map((x) => V(x[1]));
+  if (pts.length === 1) { pts.push(pts[0].clone()); looks.push(looks[0].clone()); }
+  posCurve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+  lookCurve = new THREE.CatmullRomCurve3(looks, false, "centripetal");
+  currentF = Math.min(currentF, pts.length - 1);
+}
+
+// gentle slow-down near each station without stopping (no "sticky" hold)
+function easeSegments(f) {
+  const i = Math.floor(f), t = f - i;
+  const s = t * t * (3 - 2 * t);
+  return i + (t + (s - t) * 0.55);
 }
 
 function kick() {
   if (animating || !ready) return;
   animating = true;
+  lastT = performance.now();
   requestAnimationFrame(tick);
 }
-function tick() {
-  if (view.hidden) { animating = false; return; }
-  let moving = false;
-  for (const [cur, goal] of [[camPos, goalPos], [camLook, goalLook]]) {
-    for (const k of ["x", "y", "z"]) {
-      const d = goal[k] - cur[k];
-      if (Math.abs(d) > 0.0003) { cur[k] += d * 0.16; moving = true; } else cur[k] = goal[k];
-    }
-  }
-  camera.position.set(camPos.x, camPos.y, camPos.z);
-  camera.lookAt(camLook.x, camLook.y, camLook.z);
+
+const _p = { x: 0, y: 0, z: 0 };
+function tick(now) {
+  if (view.hidden || !posCurve) { animating = false; return; }
+  const dt = Math.min(0.05, Math.max(0.001, (now - lastT) / 1000));
+  lastT = now;
+  // frame-rate independent critically-damped follow of the scroll position
+  const k = 1 - Math.exp(-dt * 4.2);
+  currentF += (targetF - currentF) * k;
+  if (Math.abs(targetF - currentF) < 0.0004) currentF = targetF;
+
+  const n = posCurve.points.length - 1;
+  const u = n > 0 ? Math.min(1, Math.max(0, easeSegments(currentF) / n)) : 0;
+  const pos = posCurve.getPoint(u), look = lookCurve.getPoint(u);
+
+  // arrival: drift in from slightly behind and above on first load
+  const ip = Math.min(1, (now - introStart) / INTRO_MS);
+  const ie = 1 - Math.pow(1 - ip, 3);
+  const intro = mode() === "cinematic" ? 1 - ie : 0;
+  camera.position.set(pos.x, pos.y + 0.22 * intro, pos.z + 0.55 * intro);
+  camera.lookAt(look.x, look.y, look.z);
   renderer.render(scene, camera);
-  if (moving) requestAnimationFrame(tick); else animating = false;
+
+  if (currentF !== targetF || ip < 1) requestAnimationFrame(tick);
+  else animating = false;
 }
 
 // ---------------------------------------------------------------- procedural textures
@@ -335,7 +368,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.render(scene, camera);
+  if (posCurve) { animating = false; kick(); }
 }
 
 async function init() {
@@ -350,16 +383,12 @@ async function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     buildScene();
-    const [p, l] = SHOTS.desk;
-    Object.assign(camPos, { x: p[0], y: p[1] + 0.25, z: p[2] + 0.6 }); // gentle arrival move
-    Object.assign(camLook, { x: l[0], y: l[1], z: l[2] });
-    Object.assign(goalPos, { x: p[0], y: p[1], z: p[2] });
-    Object.assign(goalLook, { x: l[0], y: l[1], z: l[2] });
     ready = true;
+    introStart = performance.now();
     view.classList.add("office-ready");
     resize();
-    if (mode() === "static") { Object.assign(camPos, goalPos); }
     updateFromScroll();
+    currentF = targetF;
     kick();
   } catch (e) {
     console.warn("Gather office scene unavailable, using the standard dashboard layout.", e);
