@@ -39,3 +39,23 @@ Push to GitHub → Render → *New → Blueprint* → pick the repo (uses `rende
 ## Privacy
 
 Listening only starts after the user confirms everyone has consented; a live indicator is shown while listening; Stop ends capture immediately. Nothing is stored server-side after the browser disconnects.
+
+## Meeting recording (optional, user-started)
+
+Tick **Record live (screen + audio)** in the Start dialog (and the consent box). Gather then records the **tab, window or screen you pick in the browser's share dialog** — nothing else, never in the background.
+
+While recording, a **REC** bar shows a live preview, the elapsed time, what is captured and a **Stop recording** button. Recording also stops automatically when you stop screen sharing or end the meeting.
+
+**What gets saved**
+* The video (WebM, or MP4 where the browser supports it) plus a snapshot of the shared screen every 30 s.
+* Stored **only in this browser** (IndexedDB). Meeting data stays in localStorage as before. Use **Download** on the meeting page to keep a permanent copy.
+* Every transcript line and every extracted task/decision/commitment shows its time (`mm:ss`, seconds on hover). Click it to jump to that moment in the recording. Timestamps also appear in the To-do list and the Tasks panel.
+* **Screen details**: under each snapshot you can type names or details you see. These are labelled **User-confirmed** — Gather does not read names from images automatically.
+* Speaker labels are editable: click a speaker's name in the transcript to rename it throughout that meeting.
+
+**Browser and audio limitations (be precise when demoing)**
+* Needs a recent **Chrome or Edge** on desktop (MediaRecorder + screen sharing + IndexedDB). On unsupported browsers the option is disabled with an explanation.
+* **Shared audio is only recorded when the browser provides it**: Chrome/Edge on Windows give audio for a shared **tab** or **entire screen** when "Share audio" is ticked; a shared **single window** has no audio; macOS does not provide system audio. Gather tells you exactly which audio it is recording ("your microphone", "shared audio", or both). Your microphone is included if you allowed it.
+* Size is roughly 10–20 MB per 5 minutes. If browser storage is full, the recording is **downloaded to your computer instead** and the transcript, tasks and snapshots metadata are still saved — the meeting is never lost.
+* Recordings do not sync between devices or browsers, and are removed if you clear this site's browser data.
+* "You vs Others" labels come from the two separate audio streams (your mic vs. the shared audio) during live transcription; within the shared audio, speakers are separated by AssemblyAI diarization (Speaker A/B…), which you can rename.

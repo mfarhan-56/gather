@@ -272,6 +272,9 @@
       resetLiveView();
       Store.save(current);
       listening = true;
+      document.dispatchEvent(new CustomEvent("aether:capture-started", { detail: {
+        meetingId: current.id, startedAt: current.startedAt, streams: mediaStreams.slice(),
+        record: !!(document.getElementById("optRecord") && document.getElementById("optRecord").checked) } }));
       send({ type: "start", sources, user_name: Profile.get().name || "", today: todayString() });
       setListeningUI(true);
       Pip.lastTurn = null;
@@ -288,6 +291,7 @@
 
   function finishMeeting(serverAlive) {
     if (!current) return;
+    document.dispatchEvent(new CustomEvent("aether:capture-stopping", { detail: { meetingId: current.id } }));
     stopCapture();
     listening = false;
     setListeningUI(false);

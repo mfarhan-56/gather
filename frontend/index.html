@@ -381,6 +381,9 @@
       <label class="check"><input type="checkbox" id="optSystem" checked />
         <span><b>Capture meeting audio</b><br><small>You'll be asked to share a tab or screen. Pick your meeting tab (Google Meet) or <i>Entire screen</i> (Zoom/Teams app) and turn on <b>Share audio</b>. Only the sound is used.</small></span>
       </label>
+      <label class="check" id="optRecordRow"><input type="checkbox" id="optRecord" />
+        <span><b>Record live (screen + audio)</b><br><small>Saves a video of the tab/window/screen you choose to share, plus your microphone and the shared audio if your browser provides it. Stored only in this browser. You can stop recording at any time.</small></span>
+      </label>
       <label class="check" id="optPipRow"><input type="checkbox" id="optPip" checked />
         <span><b>Open floating copilot</b><br><small>A small always-on-top window with live suggestions that stays above your meeting (Meet, Zoom, Teams).</small></span>
       </label>
@@ -417,6 +420,7 @@
   <script src="/static/agent.js"></script>
   <script src="/static/features.js"></script>
   <script src="/static/tasks.js"></script>
+  <script src="/static/recording.js"></script>
   <script type="module" src="/static/office3d.js"></script>
 </body>
 </html>
