@@ -547,12 +547,16 @@
           meetingId: m.id, meetingTitle: m.title, meetingDate: m.startedAt, assignedBy: it.assigned_by || null, agent: !!it.agent,
           priority: it.priority || null, priorityReason: it.priority_reason || null, dependsOn: it.depends_on || null,
           progress: it.progress || null, progressNote: it.progressNote || null, evidence: it.evidence || null,
+          wf: it.wf || null, reviewed: !!it.reviewed, cancelled: !!it.cancelled, confidence: typeof it.confidence === "number" ? it.confidence : null,
         });
       }
     }
     for (const t of Manual.all()) {
-      out.push({ ref: `t:${t.id}`, text: t.text, owner: null, mine: true, unassigned: false, waiting: false,
-                 due: fromIso(t.due_date), done: !!t.done, doneAt: t.doneAt || null, manual: true, agent: !!t.agent });
+      const tOwnerMine = t.owner ? isMineOwner(t.owner) : true;
+      out.push({ ref: `t:${t.id}`, text: t.text, owner: t.owner || null, mine: tOwnerMine !== false, unassigned: false, waiting: tOwnerMine === false,
+                 due: fromIso(t.due_date), done: !!t.done, doneAt: t.doneAt || null, manual: true, agent: !!t.agent,
+                 priority: t.priority || null, dependsOn: t.depends_on || null, progress: t.progress || null,
+                 wf: t.wf || null, reviewed: true, cancelled: !!t.cancelled, confidence: null, created: t.created || null });
     }
     return out;
   }
@@ -1388,12 +1392,12 @@
   function onRoute() {
     const h = location.hash || "#/";
     const mm = h.match(/^#\/meeting\/(.+)$/);
-    route.view = mm ? "meeting" : h === "#/live" ? "live" : h === "#/meetings" ? "meetings" : h === "#/settings" ? "settings" : h === "#/team" ? "team" : "home";
+    route.view = mm ? "meeting" : h === "#/live" ? "live" : h === "#/meetings" ? "meetings" : h === "#/settings" ? "settings" : h === "#/team" ? "team" : h === "#/tasks" ? "tasks" : "home";
     if (!Auth.current) route.view = "login";
     else if (h === "#/login") { location.hash = "#/"; return; }
     route.id = mm ? decodeURIComponent(mm[1]) : null;
     if (route.view === "meeting" && listening && current && current.id === route.id) { location.hash = "#/live"; return; }
-    for (const v of ["login", "home", "meetings", "settings", "live", "meeting", "team"]) { const el = $("view-" + v); if (el) el.hidden = v !== route.view; }
+    for (const v of ["login", "home", "meetings", "settings", "live", "meeting", "team", "tasks"]) { const el = $("view-" + v); if (el) el.hidden = v !== route.view; }
     if (route.view === "login") return;
     document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("active", a.dataset.nav === route.view));
     if (route.view === "home") { renderHome(); checkReminders(); }
@@ -1472,7 +1476,7 @@
     get user() { return Auth.current; },
     get route() { return { ...route }; },
     Store, Manual, Profile, findTaskTarget, agentContext, todayString, toast, esc,
-    collectTasks, setTaskDone, setTaskDue, dueLabel, dueClass, isoDate, fromIso, startOfDay, isMineOwner, fmtDate, fmtDuration,
+    collectTasks, setTaskDone, setTaskDue, dueLabel, dueClass, isoDate, fromIso, startOfDay, isMineOwner, fmtDate, fmtDuration, parseDue,
     rerender() {
       if (route.view === "home") renderHome();
       if (route.view === "meeting" && route.id) renderMeetingPage(route.id);

@@ -23,6 +23,7 @@
     </a>
     <nav class="nav">
       <a href="#/" data-nav="home">Dashboard</a>
+      <a href="#/tasks" data-nav="tasks">Tasks</a>
       <a href="#/meetings" data-nav="meetings">Meetings</a>
       <a href="#/team" data-nav="team">Team</a>
       <a href="#/live" data-nav="live">Live meeting <i class="live-dot" id="navLive" hidden></i></a>
@@ -204,6 +205,9 @@
         </section>
       </div>
     </section>
+
+    <!-- ================= TASK MANAGER (rendered by tasks.js) ================= -->
+    <section class="view page" id="view-tasks" hidden></section>
 
     <!-- ================= TEAM (built from meeting data; rendered by features.js) ================= -->
     <section class="view page" id="view-team" hidden>
@@ -412,6 +416,7 @@
   <script src="/static/app.js"></script>
   <script src="/static/agent.js"></script>
   <script src="/static/features.js"></script>
+  <script src="/static/tasks.js"></script>
   <script type="module" src="/static/office3d.js"></script>
 </body>
 </html>

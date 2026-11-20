@@ -373,29 +373,49 @@ function frameCost(scale) {
   const gl = renderer.getContext(), px = new Uint8Array(4);
   const p = SHOTS.desk[0], l = SHOTS.desk[1];
   camera.position.set(p[0], p[1], p[2]); camera.lookAt(l[0], l[1], l[2]);
-  for (let i = 0; i < 4; i++) { renderer.render(scene, camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+  for (let i = 0; i < 2; i++) { renderer.render(scene, camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
   const samples = [];
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 5; i++) {
     const t0 = performance.now();
     camera.position.x += i % 2 ? 0.002 : -0.002;
     renderer.render(scene, camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
     samples.push(performance.now() - t0);
   }
   samples.sort((x, y) => x - y);
-  return samples[4]; // median: robust to one-off hiccups
+  return samples[2]; // median of 5: robust to one-off hiccups
 }
-function pickQuality() {
-  const BUDGET = 14.5; // ms incl. ~4 ms sync overhead => ~10.5 ms GPU, headroom under 16.7 ms at 60 Hz
+// Measured once per device, in small steps between frames (never one long freeze), then cached.
+const QUALITY_KEY = "gather.renderScale.v1";
+function applyScale(scale) {
+  const i = SCALES.indexOf(scale);
+  scaleIdx = i >= 0 ? i : SCALES.indexOf(0.75);
+  renderer.setPixelRatio(SCALES[scaleIdx]);
+  renderer.setSize(canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight, false);
+  view.dataset.renderScale = SCALES[scaleIdx];
+}
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+async function pickQuality() {
+  const cached = parseFloat(localStorage.getItem(QUALITY_KEY) || "");
+  if (SCALES.includes(cached)) { applyScale(cached); return; }
+  applyScale(0.75); // safe default while measuring
+  const BUDGET = 13; // ms incl. ~4 ms sync overhead => ~9 ms GPU, comfortable headroom under 16.7 ms at 60 Hz
   const maxScale = Math.min(window.devicePixelRatio || 1, 2);
   let i = SCALES.findIndex((x) => x <= maxScale);
   try {
-    renderer.compile(scene, camera);
-    frameCost(1); frameCost(1); // warm-up: shader programs + GPU clock ramp
-    while (i < SCALES.length - 1 && frameCost(SCALES[i]) > BUDGET) i++;
+    await nextFrame();
+    await nextFrame(); frameCost(1);            // warm-up: shader programs + GPU clock ramp
+    await nextFrame();
+    while (i < SCALES.length - 1) {
+      if (view.hidden) { applyScale(0.75); return; } // user left the dashboard: finish later
+      const cost = frameCost(SCALES[i]);
+      if (cost <= BUDGET) break;
+      i++;
+      await nextFrame();
+    }
   } catch (e) { i = SCALES.indexOf(0.75); }
-  scaleIdx = i;
-  renderer.setPixelRatio(SCALES[i]);
-  view.dataset.renderScale = SCALES[i];
+  applyScale(SCALES[i]);
+  try { localStorage.setItem(QUALITY_KEY, String(SCALES[i])); } catch {}
+  animating = false; kick();
 }
 function resize() {
   if (!ready) return;
@@ -420,9 +440,11 @@ async function init() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.shadowMap.autoUpdate = false; // nothing in the room moves: render shadow maps once
     buildScene();
+    // compile shaders in the background (KHR_parallel_shader_compile) instead of freezing the page on first render
+    try { if (renderer.compileAsync) await renderer.compileAsync(scene, camera); } catch (e) { /* falls back to compile-on-render */ }
     renderer.shadowMap.needsUpdate = true;
     if (GQ.includes("dbg")) window.__office = { renderer, scene, camera, THREE }; // measurement hook only
-    pickQuality();
+    applyScale(SCALES.includes(parseFloat(localStorage.getItem(QUALITY_KEY) || "")) ? parseFloat(localStorage.getItem(QUALITY_KEY)) : 0.75);
     ready = true;
     introStart = performance.now();
     view.classList.add("office-ready");
@@ -430,6 +452,7 @@ async function init() {
     updateFromScroll();
     currentF = targetF;
     kick();
+    setTimeout(() => { pickQuality(); }, 600); // measure after the first frames are on screen
   } catch (e) {
     console.warn("Gather office scene unavailable, using the standard dashboard layout.", e);
     failed = true;
