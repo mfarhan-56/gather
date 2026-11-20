@@ -225,3 +225,12 @@
 .office-on .scrim-right { opacity: 0; }
 .office-on:not([data-side="right"]) .scrim-left { opacity: 1; }
 .office-on[data-side="right"] .scrim-right { opacity: 1; }
+
+/* explicit two-column placement so text always lands on its station's side (matches the shadow) */
+.office-on .stations { display: flex !important; flex-direction: column !important; }
+.office-on .station { display: grid !important; grid-template-columns: 1fr 1fr; align-items: center; column-gap: 4vw; }
+.office-on .station-left, .office-on .station-right, .office-on .station-arrival { padding-left: 7vw !important; padding-right: 11vw !important; }
+.office-on .station-left > .station-panel, .office-on .station-arrival > .station-copy { grid-column: 1; justify-self: start; margin: 0 !important; }
+.office-on .station-right > .station-panel { grid-column: 2; justify-self: end; margin: 0 !important; }
+.office-on .station-arrival > .station-copy { align-self: end; }
+.office-on .station-panel, .office-on .station-panel.wide { width: min(560px, 100%); }
