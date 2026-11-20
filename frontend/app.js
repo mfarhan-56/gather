@@ -419,7 +419,7 @@
         <input type="checkbox" ${it.done ? "checked" : ""} data-toggle="${esc(it.id)}" data-meeting="${esc(mid)}" />
         <div class="body"><div class="main">${esc(it.task)}</div>
         <div class="sub">${tagOwner(it.owner)}${tagWhen(it.deadline)}${it.assigned_by ? `<span class="tag">🗣 from ${esc(it.assigned_by)}</span>` : ""}<span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span></div></div>
-        ${it.done || !mid ? "" : `<button class="btn agent-btn ${it.agent ? "ready" : ""}" data-agent="m:${esc(mid)}:${esc(it.id)}" title="Let AETHER Agent handle this">${it.agent ? "⚡ Ready" : "⚡ Do it"}</button>`}
+        ${it.done || !mid ? "" : `<button class="btn agent-btn ${it.agent ? "ready" : ""}" data-agent="m:${esc(mid)}:${esc(it.id)}" title="Let AETHER Agent handle this">${it.agent ? "Ready" : "Do it"}</button>`}
       </div>`,
     decisions: (it) => `
       <div class="item" data-id="${esc(it.id)}"><div class="icon">⚖️</div>
@@ -621,17 +621,17 @@
   });
 
   function taskRow(t) {
-    const ownerTag = t.waiting ? `<span class="tag">👤 ${esc(t.owner)}</span>` : t.unassigned ? `<span class="tag">unassigned</span>` : "";
-    const src = t.manual ? `<span class="tag">📝 personal</span>`
-      : `<span class="origin">📍 <a class="from" href="#/meeting/${esc(t.meetingId)}">${esc(t.meetingTitle)}</a> · ${esc(new Date(t.meetingDate).toLocaleDateString([], { month: "short", day: "numeric" }))}${t.assignedBy ? ` · 🗣 assigned by <b>${esc(t.assignedBy)}</b>` : ""}</span>`;
+    const ownerTag = t.waiting ? `<span class="tag">Owner · ${esc(t.owner)}</span>` : t.unassigned ? `<span class="tag">Unassigned</span>` : "";
+    const src = t.manual ? `<span class="tag">Personal</span>`
+      : `<span class="origin"><a class="from" href="#/meeting/${esc(t.meetingId)}">${esc(t.meetingTitle)}</a> · ${esc(new Date(t.meetingDate).toLocaleDateString([], { month: "short", day: "numeric" }))}${t.assignedBy ? ` · Assigned by <b>${esc(t.assignedBy)}</b>` : ""}</span>`;
     return `
       <div class="item task ${t.done ? "done" : ""}">
         <input type="checkbox" ${t.done ? "checked" : ""} data-ref="${esc(t.ref)}" />
         <div class="body"><div class="main">${esc(t.text)}</div>
-          <div class="sub">${t.due ? `<span class="tag due ${dueClass(t.due)}">📅 ${esc(dueLabel(t.due))}</span>` : ""}${ownerTag}${t.status === "proposed" ? `<span class="tag proposed">proposed</span>` : ""}${src}</div>
+          <div class="sub">${t.due ? `<span class="tag due ${dueClass(t.due)}">${esc(dueLabel(t.due))}</span>` : ""}${ownerTag}${t.status === "proposed" ? `<span class="tag proposed">proposed</span>` : ""}${src}</div>
         </div>
         ${t.done ? "" : `<input type="date" class="due-input" title="Change due date" data-ref="${esc(t.ref)}" data-due="1" value="${t.due ? isoDate(t.due) : ""}" />`}
-        ${t.done || !t.mine ? "" : `<button class="btn agent-btn ${t.agent ? "ready" : ""}" data-agent="${esc(t.ref)}" title="Let AETHER Agent handle this">${t.agent ? "⚡ Ready" : "⚡ Do it"}</button>`}
+        ${t.done || !t.mine ? "" : `<button class="btn agent-btn ${t.agent ? "ready" : ""}" data-agent="${esc(t.ref)}" title="Let AETHER Agent handle this">${t.agent ? "Ready" : "Do it"}</button>`}
       </div>`;
   }
 
@@ -688,7 +688,7 @@
     $("fAll").textContent = byFilter.all.length;
     const list = byFilter[taskFilter];
     const groups = [
-      ["🔴 Overdue", (t) => t.due && t.due < today],
+      ["Overdue", (t) => t.due && t.due < today],
       ["Today", (t) => t.due && +startOfDay(t.due) === +today],
       ["This week", (t) => t.due && t.due > today && t.due < weekEnd],
       ["Later", (t) => t.due && t.due >= weekEnd],
@@ -699,7 +699,7 @@
       const g = list.filter(f).sort((a, b) => (a.due || 0) - (b.due || 0));
       if (g.length) html += `<div class="group-label">${label} <span>${g.length}</span></div><div class="list">${g.map(taskRow).join("")}</div>`;
     }
-    $("todoList").innerHTML = html || `<div class="empty small">${taskFilter === "waiting" ? "Nobody owes you anything right now." : "Nothing to do. 🎉"}</div>`;
+    $("todoList").innerHTML = html || `<div class="empty small">${taskFilter === "waiting" ? "Nobody owes you anything right now." : "Nothing to do. You're all caught up."}</div>`;
 
     // done
     const done = tasks.filter((t) => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
@@ -713,7 +713,7 @@
       <div class="tl-item ${dueClass(x.due)}">
         <div class="tl-date"><b>${x.due.getDate()}</b><span>${x.due.toLocaleDateString([], { month: "short" })}</span></div>
         <div class="body"><div class="main">${esc(x.text)}</div>
-          <div class="sub"><span class="tag due ${dueClass(x.due)}">${esc(dueLabel(x.due))}</span>${x.who ? `<span class="tag ${isMineOwner(x.who) ? "me" : ""}">👤 ${esc(x.who)}</span>` : ""}${x.meetingId ? `<a class="from" href="#/meeting/${esc(x.meetingId)}">${esc(x.meetingTitle)}</a>` : `<span class="tag">📝 personal</span>`}</div>
+          <div class="sub"><span class="tag due ${dueClass(x.due)}">${esc(dueLabel(x.due))}</span>${x.who ? `<span class="tag ${isMineOwner(x.who) ? "me" : ""}">${esc(x.who)}</span>` : ""}${x.meetingId ? `<a class="from" href="#/meeting/${esc(x.meetingId)}">${esc(x.meetingTitle)}</a>` : `<span class="tag">Personal</span>`}</div>
         </div>
       </div>`).join("") || `<div class="empty small">No upcoming deadlines.</div>`;
 
@@ -882,10 +882,10 @@
       <div class="top"><span class="t">${live ? '<i class="live-dot"></i> ' : ""}${esc(m.title)}</span><span class="d">${esc(fmtDate(m.startedAt))}</span></div>
       <div class="snip">${esc(snippet)}</div>
       <div class="chips">
-        <span class="tag">⏱ ${esc(fmtDuration(m.duration || (live ? Date.now() - m.startedAt : 0)))}</span>
-        <span class="tag">✅ ${(s.action_items || []).length} tasks</span>
-        <span class="tag">⚖️ ${(s.decisions || []).length} decisions</span>
-        <span class="tag">💬 ${m.turns.length} lines</span>
+        <span class="tag">${esc(fmtDuration(m.duration || (live ? Date.now() - m.startedAt : 0)))}</span>
+        <span class="tag">${(s.action_items || []).length} tasks</span>
+        <span class="tag">${(s.decisions || []).length} decisions</span>
+        <span class="tag">${m.turns.length} lines</span>
       </div></a>`;
   }
   function renderMeetings() {
