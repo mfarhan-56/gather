@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AETHER — Real-Time Meeting Copilot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/office.css" />
 </head>
 <body>
   <div class="bg-glow"></div>
@@ -104,69 +105,101 @@
       </div>
     </section>
 
-    <!-- ================= DASHBOARD: PERSONAL MANAGER ================= -->
-    <section class="view page" id="view-home" hidden>
-      <div class="hero">
-        <div>
-          <h2 id="greeting">Welcome back</h2>
-          <p class="muted" id="heroLine">Your commitments, deadlines and progress across every meeting.</p>
-        </div>
-        <div class="hero-actions">
-          <button class="btn primary lg" id="newMeetingBtn">● New meeting</button>
-        </div>
-      </div>
+    <!-- ================= DASHBOARD: PERSONAL MANAGER (3D office) ================= -->
+    <!-- All ids, data-widget attributes and controls are unchanged; renderHome() in app.js fills them.
+         office3d.js adds the 3D desk scene behind these stations and drives the camera from scroll. -->
+    <section class="view page office-view" id="view-home" hidden>
+      <div class="office-stage" aria-hidden="true"><canvas id="officeCanvas"></canvas><div class="office-vignette"></div></div>
+      <nav class="station-nav" id="stationNav" aria-label="Dashboard sections"></nav>
+      <div class="scroll-cue" id="scrollCue" aria-hidden="true"><span>Scroll</span><i></i></div>
 
-      <div class="banner" id="liveBanner" hidden>
-        <span><i class="live-dot"></i> A meeting is being recorded right now.</span>
-        <a class="btn sm" href="#/live">Return to live meeting →</a>
-      </div>
-      <div class="banner alert" id="dueBanner" data-widget="banner" hidden></div>
-
-      <div class="stats five" data-widget="stats">
-        <div class="stat danger"><b id="stOverdue">0</b><span>Overdue</span></div>
-        <div class="stat"><b id="stToday">0</b><span>Due today</span></div>
-        <div class="stat"><b id="stWeek">0</b><span>Due this week</span></div>
-        <div class="stat"><b id="stOpen">0</b><span>Open tasks</span></div>
-        <div class="stat good"><b id="stDoneWeek">0</b><span>Done this week</span></div>
-      </div>
-      <div class="progress-wrap" data-widget="progress">
-        <div class="progress"><b id="progressBar"></b></div>
-        <span id="progressText" class="muted small">0% of your tasks completed</span>
-      </div>
-
-      <div class="mgr-grid" id="mgrGrid">
-        <div class="panel" data-widget="todo">
-          <div class="panel-head">
-            <h2>To do <button class="btn ghost xs" id="addTaskToggle" type="button">+ Add</button></h2>
-            <div class="tabs" id="taskFilter">
-              <button class="tab active" data-filter="mine">Mine <span id="fMine">0</span></button>
-              <button class="tab" data-filter="waiting">Waiting on others <span id="fWaiting">0</span></button>
-              <button class="tab" data-filter="all">All <span id="fAll">0</span></button>
+      <div class="stations mgr-grid" id="mgrGrid">
+        <section class="station station-arrival" data-station="desk" data-label="Your desk">
+          <div class="station-copy hero">
+            <div class="kicker">AETHER · Your desk</div>
+            <h2 id="greeting">Welcome back</h2>
+            <p class="muted" id="heroLine">Your commitments, deadlines and progress across every meeting.</p>
+            <div class="hero-actions">
+              <button class="btn primary lg" id="newMeetingBtn">● New meeting</button>
+            </div>
+            <div class="banner" id="liveBanner" hidden>
+              <span><i class="live-dot"></i> A meeting is being recorded right now.</span>
+              <a class="btn sm" href="#/live">Return to live meeting →</a>
             </div>
           </div>
-          <form class="add-task" id="addTask" hidden>
-            <input id="newTaskText" placeholder="Add a task or reminder…" maxlength="200" />
-            <input type="date" id="newTaskDate" />
-            <button class="btn primary sm" type="submit">Save</button>
-            <button class="btn ghost sm" type="button" id="addTaskCancel">✕</button>
-          </form>
-          <div id="todoList"></div>
-        </div>
+        </section>
 
-        <div class="col-flow">
-          <div class="panel" data-widget="deadlines">
-            <div class="panel-head"><h2>⏰ Upcoming deadlines</h2><span class="count" id="dlCount">0</span></div>
-            <div id="deadlineList" class="timeline"></div>
+        <section class="station station-right" data-station="overview" data-label="The briefing">
+          <div class="station-panel">
+            <div class="kicker">01 · The briefing</div>
+            <h3 class="station-title">Today at a glance</h3>
+            <div class="banner alert" id="dueBanner" data-widget="banner" hidden></div>
+            <div class="stats five" data-widget="stats">
+              <div class="stat danger"><b id="stOverdue">0</b><span>Overdue</span></div>
+              <div class="stat"><b id="stToday">0</b><span>Due today</span></div>
+              <div class="stat"><b id="stWeek">0</b><span>Due this week</span></div>
+              <div class="stat"><b id="stOpen">0</b><span>Open tasks</span></div>
+              <div class="stat good"><b id="stDoneWeek">0</b><span>Done this week</span></div>
+            </div>
+            <div class="progress-wrap" data-widget="progress">
+              <div class="progress"><b id="progressBar"></b></div>
+              <span id="progressText" class="muted small">0% of your tasks completed</span>
+            </div>
           </div>
-          <div class="panel" data-widget="done">
-            <div class="panel-head"><h2>✅ Done</h2><span class="count" id="doneCount">0</span></div>
-            <div id="doneList" class="list"></div>
+        </section>
+
+        <section class="station station-left" data-station="planner" data-label="Planner">
+          <div class="station-panel wide">
+            <div class="kicker">02 · The planner</div>
+            <div class="panel" data-widget="todo">
+              <div class="panel-head">
+                <h2>To do <button class="btn ghost xs" id="addTaskToggle" type="button">+ Add</button></h2>
+                <div class="tabs" id="taskFilter">
+                  <button class="tab active" data-filter="mine">Mine <span id="fMine">0</span></button>
+                  <button class="tab" data-filter="waiting">Waiting on others <span id="fWaiting">0</span></button>
+                  <button class="tab" data-filter="all">All <span id="fAll">0</span></button>
+                </div>
+              </div>
+              <form class="add-task" id="addTask" hidden>
+                <input id="newTaskText" placeholder="Add a task or reminder…" maxlength="200" />
+                <input type="date" id="newTaskDate" />
+                <button class="btn primary sm" type="submit">Save</button>
+                <button class="btn ghost sm" type="button" id="addTaskCancel">✕</button>
+              </form>
+              <div id="todoList"></div>
+            </div>
           </div>
-          <div class="panel" data-widget="recent">
-            <div class="panel-head"><h2>Recent meetings</h2><a class="link" href="#/meetings">View all →</a></div>
-            <div id="recentMeetings" class="meeting-list compact"></div>
+        </section>
+
+        <section class="station station-right" data-station="monitor" data-label="Deadlines">
+          <div class="station-panel">
+            <div class="kicker">03 · On the screen</div>
+            <div class="panel" data-widget="deadlines">
+              <div class="panel-head"><h2>⏰ Upcoming deadlines</h2><span class="count" id="dlCount">0</span></div>
+              <div id="deadlineList" class="timeline"></div>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <section class="station station-left" data-station="tray" data-label="Done">
+          <div class="station-panel">
+            <div class="kicker">04 · The out-tray</div>
+            <div class="panel" data-widget="done">
+              <div class="panel-head"><h2>✅ Done</h2><span class="count" id="doneCount">0</span></div>
+              <div id="doneList" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="station station-right" data-station="notes" data-label="Meetings">
+          <div class="station-panel">
+            <div class="kicker">05 · Meeting notes</div>
+            <div class="panel" data-widget="recent">
+              <div class="panel-head"><h2>Recent meetings</h2><a class="link" href="#/meetings">View all →</a></div>
+              <div id="recentMeetings" class="meeting-list compact"></div>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -364,5 +397,6 @@
   <script src="/static/demo-data.js"></script>
   <script src="/static/app.js"></script>
   <script src="/static/agent.js"></script>
+  <script type="module" src="/static/office3d.js"></script>
 </body>
 </html>
