@@ -859,6 +859,8 @@
       el.download = (o.title || "aether-draft").replace(/[^\w\- ]+/g, "").trim() + ".txt";
       el.click();
     }));
+    // integration point for frontend/agent.js (real app actions via Composio)
+    document.dispatchEvent(new CustomEvent("aether:agent-rendered", { detail: { data: a, ref: agentRef, body } }));
   }
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-agent]");
@@ -1449,6 +1451,19 @@
     taskFilter = Settings.get().filter;
     document.querySelectorAll("#taskFilter .tab").forEach((x) => x.classList.toggle("active", x.dataset.filter === taskFilter));
   }
+  // ---------------------------------------------------------------------
+  // Public integration API for frontend/agent.js (keep this block stable)
+  // ---------------------------------------------------------------------
+  window.AETHER = {
+    get user() { return Auth.current; },
+    get route() { return { ...route }; },
+    Store, Manual, Profile, findTaskTarget, agentContext, todayString, toast, esc,
+    rerender() {
+      if (route.view === "home") renderHome();
+      if (route.view === "meeting" && route.id) renderMeetingPage(route.id);
+    },
+  };
+
   connect();
   onRoute();
 })();
