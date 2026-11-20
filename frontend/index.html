@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AETHER — Real-Time Meeting Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <div class="logo"><span></span></div>
+      <div>
+        <h1>AETHER</h1>
+        <p>Real-time meeting copilot</p>
+      </div>
+    </a>
+    <nav class="nav">
+      <a href="#/" data-nav="home">Dashboard</a>
+      <a href="#/meetings" data-nav="meetings">Meetings</a>
+      <a href="#/live" data-nav="live">Live meeting <i class="live-dot" id="navLive" hidden></i></a>
+      <a href="#/settings" data-nav="settings">Settings</a>
+    </nav>
+    <div class="pill" id="connPill"><i class="dot"></i><span id="connText">Connecting…</span></div>
+    <div class="user-menu">
+      <button class="avatar-btn" id="avatarBtn" title="Account">?</button>
+      <div class="menu" id="userMenu" hidden>
+        <div class="menu-head"><b id="menuName"></b><span id="menuEmail"></span></div>
+        <a href="#/settings" id="menuSettings">⚙ Settings</a>
+        <button id="logoutBtn">↩ Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= LOGIN ================= -->
+    <section class="view login" id="view-login" hidden>
+      <div class="login-card">
+        <div class="brand big">
+          <div class="logo"><span></span></div>
+          <div><h1>AETHER</h1><p>Real-time meeting copilot</p></div>
+        </div>
+        <div class="seg" id="authSeg">
+          <button class="seg-btn active" type="button" data-mode="signin">Sign in</button>
+          <button class="seg-btn" type="button" data-mode="signup">Create account</button>
+        </div>
+        <form id="authForm" autocomplete="on">
+          <label class="field" id="nameRow" hidden>Full name<input id="authName" maxlength="60" autocomplete="name" placeholder="e.g. Alex Morgan" /></label>
+          <label class="field">Email<input id="authEmail" type="email" required autocomplete="email" placeholder="you@example.com" /></label>
+          <label class="field">Password<input id="authPass" type="password" required minlength="4" autocomplete="current-password" placeholder="At least 4 characters" /></label>
+          <div class="auth-error" id="authError" hidden></div>
+          <button class="btn primary lg full" type="submit" id="authSubmit">Sign in</button>
+        </form>
+        <div class="demo-hint">
+          <span>🎬 Demo account: <code>demo@aether.app</code> · <code>demo1234</code></span>
+          <button class="btn ghost xs" type="button" id="fillDemo">Fill</button>
+        </div>
+        <p class="muted small center">Accounts are stored privately in this browser.</p>
+      </div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section class="view page" id="view-settings" hidden>
+      <div class="hero"><div><h2>Settings</h2><p class="muted">Personalize AETHER and your dashboard.</p></div></div>
+      <div class="settings-grid">
+        <div class="panel">
+          <div class="panel-head"><h2>Profile</h2></div>
+          <label class="field">Full name<input id="setName" maxlength="60" /></label>
+          <p class="muted small">AETHER uses your name to recognise tasks people assign to you in meetings.</p>
+          <label class="field">Email (login)<input id="setEmail" type="email" disabled /></label>
+          <div class="row">
+            <button class="btn primary sm" id="saveProfile">Save profile</button>
+            <button class="btn danger sm" id="logoutBtn2">Log out</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Dashboard</h2></div>
+          <p class="muted small">Choose what appears on your dashboard.</p>
+          <div class="toggles" id="widgetToggles"></div>
+          <label class="field">Default task view
+            <select id="setFilter">
+              <option value="mine">Mine</option>
+              <option value="waiting">Waiting on others</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Meetings</h2></div>
+          <div class="toggles">
+            <label class="toggle"><input type="checkbox" id="setCapture" /><span>Capture meeting audio by default</span></label>
+            <label class="toggle" id="setPipRow"><input type="checkbox" id="setPip" /><span>Open floating copilot when a meeting starts</span></label>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Reminders</h2></div>
+          <p class="muted small">Desktop notifications for tasks due today or overdue, while AETHER is open in a tab.</p>
+          <button class="btn ghost" id="remindBtn">🔔 Enable reminders</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DASHBOARD: PERSONAL MANAGER ================= -->
+    <section class="view page" id="view-home" hidden>
+      <div class="hero">
+        <div>
+          <h2 id="greeting">Welcome back</h2>
+          <p class="muted" id="heroLine">Your commitments, deadlines and progress across every meeting.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn primary lg" id="newMeetingBtn">● New meeting</button>
+        </div>
+      </div>
+
+      <div class="banner" id="liveBanner" hidden>
+        <span><i class="live-dot"></i> A meeting is being recorded right now.</span>
+        <a class="btn sm" href="#/live">Return to live meeting →</a>
+      </div>
+      <div class="banner alert" id="dueBanner" data-widget="banner" hidden></div>
+
+      <div class="stats five" data-widget="stats">
+        <div class="stat danger"><b id="stOverdue">0</b><span>Overdue</span></div>
+        <div class="stat"><b id="stToday">0</b><span>Due today</span></div>
+        <div class="stat"><b id="stWeek">0</b><span>Due this week</span></div>
+        <div class="stat"><b id="stOpen">0</b><span>Open tasks</span></div>
+        <div class="stat good"><b id="stDoneWeek">0</b><span>Done this week</span></div>
+      </div>
+      <div class="progress-wrap" data-widget="progress">
+        <div class="progress"><b id="progressBar"></b></div>
+        <span id="progressText" class="muted small">0% of your tasks completed</span>
+      </div>
+
+      <div class="mgr-grid" id="mgrGrid">
+        <div class="panel" data-widget="todo">
+          <div class="panel-head">
+            <h2>To do <button class="btn ghost xs" id="addTaskToggle" type="button">+ Add</button></h2>
+            <div class="tabs" id="taskFilter">
+              <button class="tab active" data-filter="mine">Mine <span id="fMine">0</span></button>
+              <button class="tab" data-filter="waiting">Waiting on others <span id="fWaiting">0</span></button>
+              <button class="tab" data-filter="all">All <span id="fAll">0</span></button>
+            </div>
+          </div>
+          <form class="add-task" id="addTask" hidden>
+            <input id="newTaskText" placeholder="Add a task or reminder…" maxlength="200" />
+            <input type="date" id="newTaskDate" />
+            <button class="btn primary sm" type="submit">Save</button>
+            <button class="btn ghost sm" type="button" id="addTaskCancel">✕</button>
+          </form>
+          <div id="todoList"></div>
+        </div>
+
+        <div class="col-flow">
+          <div class="panel" data-widget="deadlines">
+            <div class="panel-head"><h2>⏰ Upcoming deadlines</h2><span class="count" id="dlCount">0</span></div>
+            <div id="deadlineList" class="timeline"></div>
+          </div>
+          <div class="panel" data-widget="done">
+            <div class="panel-head"><h2>✅ Done</h2><span class="count" id="doneCount">0</span></div>
+            <div id="doneList" class="list"></div>
+          </div>
+          <div class="panel" data-widget="recent">
+            <div class="panel-head"><h2>Recent meetings</h2><a class="link" href="#/meetings">View all →</a></div>
+            <div id="recentMeetings" class="meeting-list compact"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= MEETINGS (HISTORY) ================= -->
+    <section class="view page" id="view-meetings" hidden>
+      <div class="hero">
+        <div>
+          <h2>Meeting history</h2>
+          <p class="muted"><span id="stMeetings">0</span> meetings · <span id="stHours">0m</span> captured · <span id="stDecisions">0</span> decisions</p>
+        </div>
+        <input class="search" id="search" placeholder="Search meetings, transcripts…" />
+      </div>
+      <div id="meetingList" class="meeting-list"></div>
+    </section>
+
+    <!-- ================= LIVE MEETING ================= -->
+    <section class="view live" id="view-live" hidden>
+      <div class="livebar">
+        <label class="title-wrap" title="Click to rename"><input class="title-input" id="liveTitle" placeholder="Name this meeting…" /><span class="pencil">✎</span></label>
+        <div class="status">
+          <div class="pill listen" id="listenPill"><i class="dot"></i><span id="listenText">Idle</span></div>
+          <div class="meter" title="Your microphone"><label>You</label><div class="bar"><b id="micLevel"></b></div></div>
+          <div class="meter" title="Meeting audio"><label>Meeting</label><div class="bar"><b id="sysLevel"></b></div></div>
+          <div class="timer" id="timer">00:00</div>
+        </div>
+        <div class="controls">
+          <button class="btn ghost" id="pipBtn" title="Float AETHER on top of your meeting window">⧉ Pop out</button>
+          <button class="btn primary" id="startBtn">● Start listening</button>
+          <button class="btn danger" id="stopBtn" disabled>■ Stop &amp; save</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <section class="panel transcript-panel">
+          <div class="panel-head">
+            <h2>Live Transcript</h2>
+            <span class="count" id="turnCount">0</span>
+          </div>
+          <div class="transcript" id="transcript"></div>
+          <button class="jump" id="jumpBtn" hidden>↓ Jump to live</button>
+        </section>
+
+        <section class="col">
+          <div class="panel suggestions-panel">
+            <div class="panel-head">
+              <h2><span class="spark">✦</span> AI Suggestions</h2>
+              <span class="hint">Appear when someone asks you something</span>
+            </div>
+            <div id="suggestions" class="stack"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Smart Insights</h2>
+              <div class="tabs">
+                <button class="tab active" data-tab="concerns">Concerns <span id="cnt-concerns">0</span></button>
+                <button class="tab" data-tab="follow_ups">Follow-ups <span id="cnt-follow_ups">0</span></button>
+                <button class="tab" data-tab="key_points">Key points <span id="cnt-key_points">0</span></button>
+              </div>
+            </div>
+            <div id="concerns" class="list tabbody"></div>
+            <div id="follow_ups" class="list tabbody" hidden></div>
+            <div id="key_points" class="list tabbody" hidden></div>
+          </div>
+        </section>
+
+        <section class="col">
+          <div class="panel">
+            <div class="panel-head"><h2>Action Items</h2><span class="count" id="cnt-action_items">0</span></div>
+            <div id="action_items" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Decisions</h2><span class="count" id="cnt-decisions">0</span></div>
+            <div id="decisions" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>🤝 Commitments</h2><span class="count" id="cnt-commitments">0</span></div>
+            <div id="commitments" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>⏰ Deadlines</h2><span class="count" id="cnt-deadlines">0</span></div>
+            <div id="deadlines" class="list"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ================= MEETING DETAIL ================= -->
+    <section class="view page" id="view-meeting" hidden>
+      <a class="back" href="#/">← Dashboard</a>
+      <div class="meeting-head">
+        <div class="grow">
+          <label class="title-wrap" title="Click to rename"><input class="title-input big" id="mTitle" placeholder="Name this meeting…" /><span class="pencil">✎</span></label>
+          <div class="meta" id="mMeta"></div>
+        </div>
+        <div class="controls">
+          <button class="btn ghost" id="mExport">⬇ Export</button>
+          <button class="btn danger" id="mDelete">Delete</button>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="col-flow">
+          <div class="panel">
+            <div class="panel-head"><h2>✦ Summary</h2><button class="btn ghost sm" id="mRegen">↻ Regenerate</button></div>
+            <div class="summary-body" id="mSummary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>✉ Follow-up message</h2><button class="btn ghost sm" id="mFollowGen">✦ Draft</button></div>
+            <div id="mFollow"><div class="empty small">Draft a ready-to-send recap for the participants: decisions, who does what, and deadlines.</div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Transcript</h2><span class="count" id="m-turns">0</span></div>
+            <div class="transcript static" id="mTranscript"></div>
+          </div>
+        </div>
+        <div class="col-flow">
+          <div class="panel">
+            <div class="panel-head"><h2>⚖️ Decisions</h2><span class="count" id="m-cnt-decisions">0</span></div>
+            <div id="m-decisions" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>🤝 Commitments</h2><span class="count" id="m-cnt-commitments">0</span></div>
+            <div id="m-commitments" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>✅ Action Items</h2><span class="count" id="m-cnt-action_items">0</span></div>
+            <div id="m-action_items" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>🔁 Follow-ups</h2><span class="count" id="m-cnt-follow_ups">0</span></div>
+            <div id="m-follow_ups" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>⏰ Deadlines</h2><span class="count" id="m-cnt-deadlines">0</span></div>
+            <div id="m-deadlines" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Concerns &amp; Open Questions</h2><span class="count" id="m-cnt-concerns">0</span></div>
+            <div id="m-concerns" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Key Points</h2><span class="count" id="m-cnt-key_points">0</span></div>
+            <div id="m-key_points" class="list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Suggestions AETHER gave</h2><span class="count" id="m-sugg-count">0</span></div>
+            <div id="m-suggestions" class="stack"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Start dialog -->
+  <div class="modal" id="startModal" hidden>
+    <div class="modal-card">
+      <h3>Start a new meeting</h3>
+      <label class="field">Meeting name
+        <input id="optTitle" maxlength="80" placeholder="e.g. Sprint planning with design team (optional — AI names it if empty)" />
+      </label>
+      <label class="check"><input type="checkbox" id="optSystem" checked />
+        <span><b>Capture meeting audio</b><br><small>You'll be asked to share a tab or screen. Pick your meeting tab (Google Meet) or <i>Entire screen</i> (Zoom/Teams app) and turn on <b>Share audio</b>. Only the sound is used.</small></span>
+      </label>
+      <label class="check" id="optPipRow"><input type="checkbox" id="optPip" checked />
+        <span><b>Open floating copilot</b><br><small>A small always-on-top window with live suggestions that stays above your meeting (Meet, Zoom, Teams).</small></span>
+      </label>
+      <label class="check"><input type="checkbox" id="optConsent" />
+        <span><b>Everyone in this meeting knows AETHER is listening.</b><br><small>Recording or transcribing people without consent may be illegal where you are.</small></span>
+      </label>
+      <p class="tip">🎧 Tip: use headphones so your mic doesn't pick up the other speakers twice.</p>
+      <div class="modal-actions">
+        <button class="btn ghost" id="cancelStart">Cancel</button>
+        <button class="btn primary" id="confirmStart" disabled>Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AETHER Agent -->
+  <div class="modal" id="agentModal" hidden>
+    <div class="modal-card wide">
+      <div class="modal-top">
+        <h3>⚡ AETHER Agent</h3>
+        <div>
+          <button class="btn ghost sm" id="agentRerun">↻ Redo</button>
+          <button class="btn ghost sm" id="agentClose">✕</button>
+        </div>
+      </div>
+      <div class="agent-task" id="agentTask"></div>
+      <div class="summary-body" id="agentBody"></div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="/static/demo-data.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
