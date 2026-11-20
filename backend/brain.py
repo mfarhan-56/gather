@@ -83,17 +83,19 @@ Extract only what the NEW turns add or change. Rules:
 - key_points: important facts, requirements, numbers, technical details. Concise. Skip trivia.
 - concerns: type "objection" | "risk" | "open_question". resolved=true if addressed later. suggestion = a short way the user could respond or mitigate (or null).
 - Use the speakers' own facts. Never invent details. Keep every text field under 25 words.
+- EVERY item (all categories) also gets "evidence": {"quote": the exact words from the transcript that support it (max 20 words, copied verbatim), "speaker": who said it} and "confidence": a number 0-1 for how clearly the transcript supports it.
+- action_items also get "priority": "high"|"medium"|"low" (urgency + impact: near deadlines, blockers for others, client-facing = higher), "priority_reason": max 10 words, and "depends_on": what this task waits on (another task, decision or person, max 12 words) or null.
 - If the new turns contain nothing meaningful, return empty lists.
 - summary: rewrite the running summary to include the new turns, max 120 words.
 Return JSON exactly:
 {"summary": str,
- "action_items": [{"id": str|null, "task": str, "owner": str|null, "assigned_by": str|null, "deadline": str|null, "due_date": str|null, "status": "confirmed"|"proposed", "done": bool}],
- "decisions": [{"id": str|null, "decision": str, "context": str|null, "decided_by": str|null, "status": "confirmed"|"proposed"}],
- "commitments": [{"id": str|null, "commitment": str, "who": str, "to_whom": str|null, "when": str|null, "due_date": str|null}],
- "follow_ups": [{"id": str|null, "item": str, "owner": str|null, "reason": str|null}],
- "deadlines": [{"id": str|null, "what": str, "who": str|null, "when": str, "due_date": str|null}],
- "key_points": [{"id": str|null, "point": str}],
- "concerns": [{"id": str|null, "issue": str, "type": "objection"|"risk"|"open_question", "resolved": bool, "suggestion": str|null}]}"""
+ "action_items": [{"id": str|null, "task": str, "owner": str|null, "assigned_by": str|null, "deadline": str|null, "due_date": str|null, "status": "confirmed"|"proposed", "done": bool, "priority": "high"|"medium"|"low", "priority_reason": str, "depends_on": str|null, "evidence": {"quote": str, "speaker": str}, "confidence": number}],
+ "decisions": [{"id": str|null, "decision": str, "context": str|null, "decided_by": str|null, "status": "confirmed"|"proposed", "evidence": {"quote": str, "speaker": str}, "confidence": number}],
+ "commitments": [{"id": str|null, "commitment": str, "who": str, "to_whom": str|null, "when": str|null, "due_date": str|null, "evidence": {"quote": str, "speaker": str}, "confidence": number}],
+ "follow_ups": [{"id": str|null, "item": str, "owner": str|null, "reason": str|null, "evidence": {"quote": str, "speaker": str}, "confidence": number}],
+ "deadlines": [{"id": str|null, "what": str, "who": str|null, "when": str, "due_date": str|null, "evidence": {"quote": str, "speaker": str}, "confidence": number}],
+ "key_points": [{"id": str|null, "point": str, "evidence": {"quote": str, "speaker": str}, "confidence": number}],
+ "concerns": [{"id": str|null, "issue": str, "type": "objection"|"risk"|"open_question", "resolved": bool, "suggestion": str|null, "evidence": {"quote": str, "speaker": str}, "confidence": number}]}"""
 
 SUMMARY_SYSTEM = """You are AETHER. Write a clear, well-organized meeting summary in Markdown using the transcript
 and the extracted items. The FIRST line must be "# <short specific meeting title, max 7 words>". Then sections: ## Overview (3-5 sentences), ## Key Discussion Points, ## Decisions,
@@ -283,8 +285,9 @@ class Brain:
     # ---------- slow path ----------
     def _state_for_prompt(self):
         compact = {}
+        skip = ("updated", "new", "evidence", "confidence", "priority_reason", "doneAt", "dueUser", "agent", "actions")
         for cat, items in self.state.items():
-            compact[cat] = [{k: v for k, v in it.items() if k not in ("updated", "new")} for it in items[-25:]]
+            compact[cat] = [{k: v for k, v in it.items() if k not in skip} for it in items[-25:]]
         return json.dumps(compact, ensure_ascii=False)
 
     async def analyze(self):
@@ -309,7 +312,7 @@ class Brain:
             try:
                 out = await self.llm.chat(
                     [{"role": "system", "content": ANALYSIS_SYSTEM}, {"role": "user", "content": user}],
-                    model=self.model, max_tokens=1200, temperature=0.2,
+                    model=self.model, max_tokens=2000, temperature=0.2,
                 )
             except LLMError as e:
                 log.warning("analysis failed: %s", e)

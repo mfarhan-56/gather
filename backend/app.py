@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .actions import router as actions_router
+from .features import router as features_router
 from .brain import Brain, followup_message, run_agent, summarize
 from .llm import GroqClient, LLMError
 from .stt import STTStream
@@ -42,6 +43,7 @@ SOURCES = {0: "mic", 1: "system"}
 
 app = FastAPI(title="AETHER")
 app.include_router(actions_router)
+app.include_router(features_router)
 FRONTEND = ROOT / "frontend"
 
 
