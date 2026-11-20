@@ -6,6 +6,22 @@
   if (!A) return;
   const esc = A.esc;
   let status = { enabled: false, connected: {} };
+  const APP_LABEL = { gmail: "Gmail", googlecalendar: "Google Calendar", slack: "Slack", notion: "Notion", googledocs: "Google Docs", github: "GitHub" };
+  const lookupCache = {};
+  async function options(what) {
+    if (lookupCache[what]) return lookupCache[what];
+    const { options } = await api("lookup", { user: uid(), what });
+    lookupCache[what] = options;
+    return options;
+  }
+  function needConnect(app) {
+    if (status.connected[app]) return false;
+    A.toast(`Connect ${APP_LABEL[app]} first: Settings → Connected apps.`, "warn");
+    return true;
+  }
+  function doneLink(label, link) {
+    return link ? `${label} <a href="${A.esc(link)}" target="_blank" rel="noopener">Open ↗</a>` : label;
+  }
 
   const uid = () => A.user && A.user.id;
 
@@ -57,6 +73,10 @@
       <p class="muted small">Let AETHER Agent act for you. It only ever acts after you click and confirm.</p>
       ${row("gmail", "Gmail", "✉")}
       ${row("googlecalendar", "Google Calendar", "📅")}
+      ${row("slack", "Slack", "💬")}
+      ${row("notion", "Notion", "📓")}
+      ${row("googledocs", "Google Docs", "📄")}
+      ${row("github", "GitHub", "🐙")}
       ${status.error ? `<p class="muted small">⚠ ${esc(status.error)}</p>` : ""}
       <p class="muted small">Google's permission screen will show "Composio", our secure integration partner.</p>`;
     p.querySelector("#appsRefresh").onclick = () => refreshStatus().then(() => A.toast("Connections refreshed"));
@@ -72,7 +92,7 @@
       for (let i = 0; i < 40; i++) {
         await new Promise((r) => setTimeout(r, 3000));
         await refreshStatus();
-        if (status.connected[toolkit]) { A.toast((toolkit === "gmail" ? "Gmail" : "Google Calendar") + " connected ✓"); return; }
+        if (status.connected[toolkit]) { A.toast((APP_LABEL[toolkit] || toolkit) + " connected ✓"); return; }
       }
     } catch (e) {
       A.toast("Could not start the connection: " + e.message, "error");
@@ -112,7 +132,7 @@
       const h = document.createElement("div");
       h.className = "agent-done";
       h.innerHTML = `<h2>✔ Actions taken</h2><ul>${done.map((x) =>
-        `<li>${esc(x.label)} <span class="muted small">· ${esc(new Date(x.at).toLocaleString())}</span></li>`).join("")}</ul>`;
+        `<li>${doneLink(esc(x.label), x.link)} <span class="muted small">· ${esc(new Date(x.at).toLocaleString())}</span></li>`).join("")}</ul>`;
       body.prepend(h);
     }
 
@@ -162,6 +182,124 @@
       }));
     });
 
+    // every draft → Slack / Notion / Google Docs
+    (data.outputs || []).forEach((o, i) => {
+      const card = body.querySelector(`textarea[data-out="${i}"]`)?.closest(".agent-out");
+      if (!card) return;
+      const ex = document.createElement("div");
+      ex.className = "agent-actions";
+      ex.innerHTML = `
+        <div class="muted small" style="margin-bottom:6px">Send this ${esc(o.type || "draft")} to an app:</div>
+        <div class="row wrap">
+          <button class="btn ghost sm" data-x="slack">💬 Slack</button>
+          <button class="btn ghost sm" data-x="notion">📓 Notion page</button>
+          <button class="btn ghost sm" data-x="googledocs">📄 Google Doc</button>
+        </div>
+        <div class="x-form"></div>`;
+      card.appendChild(ex);
+      const form = ex.querySelector(".x-form");
+      const text = () => card.querySelector("textarea").value;
+      const title = () => (o.subject || o.title || (t && (t.obj.task || t.obj.text)) || "AETHER draft").slice(0, 180);
+
+      async function picker(what, labelText, placeholder) {
+        form.innerHTML = `<div class="act-row"><label>${labelText}<select class="x-select"><option>Loading…</option></select></label></div>`;
+        const sel = form.querySelector(".x-select");
+        try {
+          const opts = await options(what);
+          sel.innerHTML = opts.length
+            ? opts.map((x) => `<option value="${esc(x.value)}">${esc(x.label)}</option>`).join("")
+            : `<option value="">${placeholder}</option>`;
+        } catch (err) { sel.innerHTML = `<option value="">${esc(err.message)}</option>`; }
+        return sel;
+      }
+      async function run(btn, action, args, label) {
+        btn.disabled = true; const old = btn.textContent; btn.textContent = "Working…";
+        try {
+          const r = await api("execute", { user: uid(), action, args });
+          logAction(ref, { type: action, label, link: r.link || null });
+          form.innerHTML = `<div class="x-done">✓ ${doneLink(esc(label), r.link)}</div>`;
+          A.toast(label + " ✓");
+        } catch (err) { A.toast(err.message, "error"); btn.disabled = false; btn.textContent = old; }
+      }
+
+      ex.querySelector('[data-x="slack"]').onclick = async () => {
+        if (needConnect("slack")) return;
+        const sel = await picker("slack_channels", "Channel", "No channels found");
+        form.insertAdjacentHTML("beforeend", `<div class="row"><button class="btn primary sm x-go">Post to Slack</button></div>`);
+        form.querySelector(".x-go").onclick = (ev) => {
+          const ch = sel.value, name = sel.options[sel.selectedIndex]?.text || ch;
+          if (!ch) return A.toast("Pick a channel.", "warn");
+          if (!confirm(`Post this message to ${name} in Slack now?`)) return;
+          run(ev.currentTarget, "slack_message", { channel: ch, text: text() }, `Posted to Slack ${name}`);
+        };
+      };
+      ex.querySelector('[data-x="notion"]').onclick = async () => {
+        if (needConnect("notion")) return;
+        const sel = await picker("notion_pages", "Create under page", "No pages shared with Composio. Share a page in Notion first.");
+        form.insertAdjacentHTML("beforeend", `<div class="act-row"><label>Page title<input class="x-title" value="${esc(title())}" /></label></div>
+          <div class="row"><button class="btn primary sm x-go">Create Notion page</button></div>`);
+        form.querySelector(".x-go").onclick = (ev) => {
+          if (!sel.value) return A.toast("Pick a parent page.", "warn");
+          const tt = form.querySelector(".x-title").value.trim() || title();
+          if (!confirm(`Create the Notion page “${tt}”?`)) return;
+          run(ev.currentTarget, "notion_page", { parent_id: sel.value, title: tt, content: text() }, `Notion page created: “${tt}”`);
+        };
+      };
+      ex.querySelector('[data-x="googledocs"]').onclick = () => {
+        if (needConnect("googledocs")) return;
+        form.innerHTML = `<div class="act-row"><label>Document title<input class="x-title" value="${esc(title())}" /></label></div>
+          <div class="row"><button class="btn primary sm x-go">Create Google Doc</button></div>`;
+        form.querySelector(".x-go").onclick = (ev) => {
+          const tt = form.querySelector(".x-title").value.trim() || title();
+          if (!confirm(`Create the Google Doc “${tt}” in your Drive?`)) return;
+          run(ev.currentTarget, "google_doc", { title: tt, content: text() }, `Google Doc created: “${tt}”`);
+        };
+      };
+    });
+
+    // GitHub issue for this task
+    const gh = document.createElement("div");
+    gh.className = "agent-out";
+    const ghTitle = (t && (t.obj.task || t.obj.text)) || "Task from meeting";
+    const ghBody = [
+      `**From AETHER** (meeting task)`, "",
+      ...(data.plan?.length ? ["### Plan", ...data.plan.map((x, k) => `${k + 1}. ${x}`), ""] : []),
+      ...(data.proactive?.length ? ["### Notes", ...data.proactive.map((x) => `- ${x}`)] : []),
+    ].join("\n");
+    gh.innerHTML = `
+      <div class="agent-out-head"><b>🐙 Track it as a GitHub issue</b></div>
+      <div class="row"><button class="btn ghost sm" id="ghStart">Choose repository…</button>
+        ${status.connected.github ? "" : `<span class="muted small">Connect GitHub in Settings first.</span>`}</div>
+      <div class="x-form" id="ghForm"></div>`;
+    body.appendChild(gh);
+    gh.querySelector("#ghStart").onclick = async () => {
+      if (needConnect("github")) return;
+      const form = gh.querySelector("#ghForm");
+      form.innerHTML = `<div class="act-row"><label>Repository<select class="x-select"><option>Loading…</option></select></label>
+        <label>Issue title<input class="x-title" value="${esc(ghTitle)}" /></label></div>
+        <textarea class="followup-text agent-text x-body"></textarea>
+        <div class="row"><button class="btn primary sm x-go">Create issue</button></div>`;
+      form.querySelector(".x-body").value = ghBody;
+      const sel = form.querySelector(".x-select");
+      try {
+        const opts = await options("github_repos");
+        sel.innerHTML = opts.length ? opts.map((x) => `<option value="${esc(x.value)}">${esc(x.label)}</option>`).join("") : `<option value="">No repositories found</option>`;
+      } catch (err) { sel.innerHTML = `<option value="">${esc(err.message)}</option>`; }
+      form.querySelector(".x-go").onclick = async (ev) => {
+        const repo = sel.value, tt = form.querySelector(".x-title").value.trim();
+        if (!repo || !tt) return A.toast("Pick a repository and enter a title.", "warn");
+        if (!confirm(`Create issue “${tt}” in ${repo}?`)) return;
+        const b = ev.currentTarget; b.disabled = true; b.textContent = "Working…";
+        try {
+          const r = await api("execute", { user: uid(), action: "github_issue", args: { repo, title: tt, body: form.querySelector(".x-body").value } });
+          const label = `GitHub issue created in ${repo}: “${tt}”`;
+          logAction(ref, { type: "github_issue", label, link: r.link || null });
+          form.innerHTML = `<div class="x-done">✓ ${doneLink(esc(label), r.link)}</div>`;
+          A.toast("GitHub issue created ✓");
+        } catch (err) { A.toast(err.message, "error"); b.disabled = false; b.textContent = "Create issue"; }
+      };
+    };
+
     // calendar event for this task
     const cal = document.createElement("div");
     cal.className = "agent-out";
@@ -193,13 +331,13 @@
       if (!confirm(`Create “${title}” on ${new Date(startVal).toLocaleString()}${attendees ? " and invite " + attendees : ""}?`)) return;
       b.disabled = true; b.textContent = "Working…";
       try {
-        await api("execute", { user: uid(), action: "calendar_event", args: {
+        const r = await api("execute", { user: uid(), action: "calendar_event", args: {
           title, start: startVal, hours: Math.floor(minutes / 60), minutes: minutes % 60,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
           attendees, notify: !!attendees, meet: true,
           description: `Created by AETHER from task: ${taskText}`,
         } });
-        logAction(ref, { type: "calendar_event", label: `Calendar event created: “${title}” (${new Date(startVal).toLocaleString()})` });
+        logAction(ref, { type: "calendar_event", label: `Calendar event created: “${title}” (${new Date(startVal).toLocaleString()})`, link: r.link || null });
         A.toast("Event created in Google Calendar ✓");
         b.textContent = "✓ Created";
       } catch (err) {
@@ -220,6 +358,11 @@
     .act-row input:focus { outline:none; border-color:rgba(139,124,255,.5); }
     .agent-done { margin-bottom:10px; padding:10px 12px; border-radius:10px; background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.3); }
     .agent-done h2 { margin-top:0 !important; color:#a7f3d0 !important; }
+    .agent-done a, .x-done a { color:var(--accent-2); }
+    .row.wrap { flex-wrap:wrap; }
+    .x-form { margin-top:8px; }
+    .x-form select { background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 9px; border-radius:8px; font:inherit; font-size:13px; color-scheme:dark; }
+    .x-done { padding:8px 10px; border-radius:8px; background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.3); color:#a7f3d0; font-size:13px; }
   `;
   document.head.appendChild(css);
 })();
