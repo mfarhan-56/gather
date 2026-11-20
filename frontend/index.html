@@ -24,6 +24,7 @@
     <nav class="nav">
       <a href="#/" data-nav="home">Dashboard</a>
       <a href="#/meetings" data-nav="meetings">Meetings</a>
+      <a href="#/team" data-nav="team">Team</a>
       <a href="#/live" data-nav="live">Live meeting <i class="live-dot" id="navLive" hidden></i></a>
       <a href="#/settings" data-nav="settings">Settings</a>
     </nav>
@@ -202,6 +203,18 @@
           </div>
         </section>
       </div>
+    </section>
+
+    <!-- ================= TEAM (built from meeting data; rendered by features.js) ================= -->
+    <section class="view page" id="view-team" hidden>
+      <div class="hero">
+        <div>
+          <h2>Team</h2>
+          <p class="muted" id="teamLine">Everyone with commitments in your meetings, and how they are tracking.</p>
+        </div>
+      </div>
+      <div class="team-stats" id="teamStats"></div>
+      <div id="teamList" class="team-list"></div>
     </section>
 
     <!-- ================= MEETINGS (HISTORY) ================= -->
@@ -398,6 +411,7 @@
   <script src="/static/demo-data.js"></script>
   <script src="/static/app.js"></script>
   <script src="/static/agent.js"></script>
+  <script src="/static/features.js"></script>
   <script type="module" src="/static/office3d.js"></script>
 </body>
 </html>

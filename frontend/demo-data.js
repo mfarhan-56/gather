@@ -30,6 +30,39 @@ window.AETHER_DEMO = (() => {
         key_points: (s.points || []).map((point) => ({ id: id("K"), point, updated: (start + dur / 2) / 1000 })),
         concerns: (s.concerns || []).map(([issue, type, resolved, suggestion]) => ({ id: id("C"), issue, type, resolved, suggestion, updated: (start + dur / 2) / 1000 })),
       };
+      // PS-05 fields for the demo: evidence quote (best-matching line), confidence, priority, dependencies
+      const words = (x) => new Set(String(x || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3));
+      const evidenceFor = (text) => {
+        const w = words(text);
+        let best = null, score = 0;
+        spec.turns.forEach(([speaker, said]) => {
+          const ws = words(said);
+          let s = 0; w.forEach((x) => { if (ws.has(x)) s++; });
+          if (s > score) { score = s; best = { speaker, said }; }
+        });
+        if (!best) return null;
+        const q = best.said.split(" ");
+        return { quote: q.slice(0, 20).join(" ") + (q.length > 20 ? "…" : ""), speaker: best.speaker === "You" ? "Alex" : best.speaker };
+      };
+      const DEPENDS = {
+        "Send 400-seat pricing proposal to Horizon Retail": "SSO delivery date from engineering",
+        "Review David's caching proposal": "David's caching proposal",
+        "Plan a one-week pairing onboarding for the contractor": "Finance approval for the contractor",
+        "Draft the investor update deck": "Revenue and retention numbers from Priya",
+        "Run load test on the new sync engine": "Payments integration finishing",
+      };
+      const textOf = (it) => it.task || it.decision || it.commitment || it.item || it.what || it.point || it.issue;
+      for (const cat of Object.keys(state)) for (const it of state[cat]) {
+        const ev = evidenceFor(textOf(it) + " " + (it.owner || it.who || ""));
+        if (ev) { it.evidence = ev; it.confidence = 0.82 + ((it.id.charCodeAt(1) || 1) % 15) / 100; }
+      }
+      for (const it of state.action_items) {
+        const days = it.due_date ? Math.round((new Date(it.due_date) - today) / DAY) : null;
+        const client = /client|horizon|investor|board|beta users|pricing/i.test(it.task);
+        it.priority = it.done ? "low" : (days !== null && days <= 0 && client) || (days !== null && days <= -2) ? "high" : (days !== null && days <= 3) || client ? "medium" : "low";
+        it.priority_reason = it.priority === "high" ? (client ? "client-facing, due soon" : "due now") : it.priority === "medium" ? "due this week" : "no near deadline";
+        it.depends_on = DEPENDS[it.task] || null;
+      }
       return {
         id: "demo" + (++n),
         title: spec.title, titleAuto: false,

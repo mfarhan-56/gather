@@ -160,6 +160,7 @@
     Store.save(mtg);
     if (summaryPendingFor === id) summaryPendingFor = null;
     if (route.view === "meeting" && route.id === id) renderMeetingPage(id);
+    if (markdown) document.dispatchEvent(new CustomEvent("aether:summary-ready", { detail: { id } }));
   }
 
   // =====================================================================
@@ -413,43 +414,51 @@
   // =====================================================================
   const tagOwner = (o) => (o ? `<span class="tag ${/^you$/i.test(o) ? "me" : ""}">${esc(o)}</span>` : "");
   const tagWhen = (w) => (w ? `<span class="tag">${esc(w)}</span>` : "");
+  const evidenceHTML = (it) => {
+    const q = it.evidence && it.evidence.quote;
+    if (!q) return "";
+    const c = typeof it.confidence === "number" ? Math.round(it.confidence * 100) : null;
+    return `<div class="evidence" data-quote="${esc(q)}" title="Click to find this in the transcript">“${esc(q)}”<span>${esc(it.evidence.speaker || "")}${c !== null ? ` · ${c}% sure` : ""}</span></div>`;
+  };
+  const prioTag = (it) => (it.priority ? `<span class="tag prio prio-${esc(it.priority)}" title="${esc(it.priority_reason || "")}">${esc(it.priority)} priority</span>` : "");
+  const dependsHTML = (it) => (it.depends_on ? `<div class="depends">Waits on: ${esc(it.depends_on)}</div>` : "");
   const RENDER = {
     action_items: (it, mid) => `
       <div class="item ${it.done ? "done" : ""}" data-id="${esc(it.id)}">
         <input type="checkbox" ${it.done ? "checked" : ""} data-toggle="${esc(it.id)}" data-meeting="${esc(mid)}" />
         <div class="body"><div class="main">${esc(it.task)}</div>
-        <div class="sub">${tagOwner(it.owner)}${tagWhen(it.deadline)}${it.assigned_by ? `<span class="tag">from ${esc(it.assigned_by)}</span>` : ""}<span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span></div></div>
+        <div class="sub">${tagOwner(it.owner)}${tagWhen(it.deadline)}${it.assigned_by ? `<span class="tag">from ${esc(it.assigned_by)}</span>` : ""}<span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span>${prioTag(it)}</div>${dependsHTML(it)}${evidenceHTML(it)}</div>
         ${it.done || !mid ? "" : `<button class="btn agent-btn ${it.agent ? "ready" : ""}" data-agent="m:${esc(mid)}:${esc(it.id)}" title="Let Gather Agent handle this">${it.agent ? "Ready" : "Do it"}</button>`}
       </div>`,
     decisions: (it) => `
       <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main">${esc(it.decision)}</div>
-        <div class="sub"><span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span>${it.decided_by ? `<span class="tag">${esc(it.decided_by)}</span>` : ""}${it.context ? `<span>${esc(it.context)}</span>` : ""}</div></div>
+        <div class="sub"><span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span>${it.decided_by ? `<span class="tag">${esc(it.decided_by)}</span>` : ""}${it.context ? `<span>${esc(it.context)}</span>` : ""}</div>${evidenceHTML(it)}</div>
       </div>`,
     commitments: (it) => `
       <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main"><b>${esc(it.who || "Someone")}</b>${it.to_whom ? ` → ${esc(it.to_whom)}` : ""}: ${esc(it.commitment)}</div>
-        <div class="sub">${tagWhen(it.when)}</div></div>
+        <div class="sub">${tagWhen(it.when)}</div>${evidenceHTML(it)}</div>
       </div>`,
     follow_ups: (it) => `
       <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main">${esc(it.item)}</div>
-        <div class="sub">${tagOwner(it.owner)}${it.reason ? `<span>${esc(it.reason)}</span>` : ""}</div></div>
+        <div class="sub">${tagOwner(it.owner)}${it.reason ? `<span>${esc(it.reason)}</span>` : ""}</div>${evidenceHTML(it)}</div>
       </div>`,
     deadlines: (it) => `
       <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main">${esc(it.what)}</div>
-        <div class="sub">${tagWhen(it.when)}${tagOwner(it.who)}</div></div>
+        <div class="sub">${tagWhen(it.when)}${tagOwner(it.who)}</div>${evidenceHTML(it)}</div>
       </div>`,
     key_points: (it) => `
       <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
-        <div class="body"><div class="main">${esc(it.point)}</div></div>
+        <div class="body"><div class="main">${esc(it.point)}</div>${evidenceHTML(it)}</div>
       </div>`,
     concerns: (it) => `
       <div class="item" data-id="${esc(it.id)}"><div class="icon">${it.type === "objection" ? "" : it.type === "risk" ? "" : ""}</div>
         <div class="body"><div class="main">${esc(it.issue)}</div>
         <div class="sub"><span class="tag ${esc(it.type)}">${esc((it.type || "risk").replace("_", " "))}</span>${it.resolved ? `<span class="tag resolved">resolved</span>` : ""}</div>
-        ${it.suggestion && !it.resolved ? `<div class="reply">${esc(it.suggestion)}</div>` : ""}</div>
+        ${it.suggestion && !it.resolved ? `<div class="reply">${esc(it.suggestion)}</div>` : ""}${evidenceHTML(it)}</div>
       </div>`,
   };
 
@@ -536,6 +545,8 @@
           due: fromIso(it.due_date) || parseDue(it.deadline, m.startedAt),
           done: !!it.done, doneAt: it.doneAt || null, status: it.status,
           meetingId: m.id, meetingTitle: m.title, meetingDate: m.startedAt, assignedBy: it.assigned_by || null, agent: !!it.agent,
+          priority: it.priority || null, priorityReason: it.priority_reason || null, dependsOn: it.depends_on || null,
+          progress: it.progress || null, progressNote: it.progressNote || null, evidence: it.evidence || null,
         });
       }
     }
@@ -623,12 +634,12 @@
   function taskRow(t) {
     const ownerTag = t.waiting ? `<span class="tag">Owner · ${esc(t.owner)}</span>` : t.unassigned ? `<span class="tag">Unassigned</span>` : "";
     const src = t.manual ? `<span class="tag">Personal</span>`
-      : `<span class="origin"><a class="from" href="#/meeting/${esc(t.meetingId)}">${esc(t.meetingTitle)}</a> · ${esc(new Date(t.meetingDate).toLocaleDateString([], { month: "short", day: "numeric" }))}${t.assignedBy ? ` · Assigned by <b>${esc(t.assignedBy)}</b>` : ""}</span>`;
+      : `${t.dependsOn && !t.done ? `<span class="tag waits">Waits on ${esc(t.dependsOn)}</span>` : ""}<span class="origin"><a class="from" href="#/meeting/${esc(t.meetingId)}">${esc(t.meetingTitle)}</a> · ${esc(new Date(t.meetingDate).toLocaleDateString([], { month: "short", day: "numeric" }))}${t.assignedBy ? ` · Assigned by <b>${esc(t.assignedBy)}</b>` : ""}</span>`;
     return `
       <div class="item task ${t.done ? "done" : ""}">
         <input type="checkbox" ${t.done ? "checked" : ""} data-ref="${esc(t.ref)}" />
         <div class="body"><div class="main">${esc(t.text)}</div>
-          <div class="sub">${t.due ? `<span class="tag due ${dueClass(t.due)}">${esc(dueLabel(t.due))}</span>` : ""}${ownerTag}${t.status === "proposed" ? `<span class="tag proposed">proposed</span>` : ""}${src}</div>
+          <div class="sub">${t.due ? `<span class="tag due ${dueClass(t.due)}">${esc(dueLabel(t.due))}</span>` : ""}${t.priority && !t.done ? `<span class="tag prio prio-${esc(t.priority)}" title="${esc(t.priorityReason || "")}">${esc(t.priority)}</span>` : ""}${t.progress ? `<span class="tag progress">${esc(t.progress.replace("_", " "))}</span>` : ""}${ownerTag}${t.status === "proposed" ? `<span class="tag proposed">proposed</span>` : ""}${src}</div>
         </div>
         ${t.done ? "" : `<input type="date" class="due-input" title="Change due date" data-ref="${esc(t.ref)}" data-due="1" value="${t.due ? isoDate(t.due) : ""}" />`}
         ${t.done || !t.mine ? "" : `<button class="btn agent-btn ${t.agent ? "ready" : ""}" data-agent="${esc(t.ref)}" title="Let Gather Agent handle this">${t.agent ? "Ready" : "Do it"}</button>`}
@@ -696,7 +707,8 @@
     ];
     let html = "";
     for (const [label, f] of groups) {
-      const g = list.filter(f).sort((a, b) => (a.due || 0) - (b.due || 0));
+      const PR = { high: 0, medium: 1, low: 2 };
+      const g = list.filter(f).sort((a, b) => ((PR[a.priority] ?? 1) - (PR[b.priority] ?? 1)) || ((a.due || 0) - (b.due || 0)));
       if (g.length) html += `<div class="group-label">${label} <span>${g.length}</span></div><div class="list">${g.map(taskRow).join("")}</div>`;
     }
     $("todoList").innerHTML = html || `<div class="empty small">${taskFilter === "waiting" ? "Nobody owes you anything right now." : "Nothing to do. You're all caught up."}</div>`;
@@ -1376,18 +1388,19 @@
   function onRoute() {
     const h = location.hash || "#/";
     const mm = h.match(/^#\/meeting\/(.+)$/);
-    route.view = mm ? "meeting" : h === "#/live" ? "live" : h === "#/meetings" ? "meetings" : h === "#/settings" ? "settings" : "home";
+    route.view = mm ? "meeting" : h === "#/live" ? "live" : h === "#/meetings" ? "meetings" : h === "#/settings" ? "settings" : h === "#/team" ? "team" : "home";
     if (!Auth.current) route.view = "login";
     else if (h === "#/login") { location.hash = "#/"; return; }
     route.id = mm ? decodeURIComponent(mm[1]) : null;
     if (route.view === "meeting" && listening && current && current.id === route.id) { location.hash = "#/live"; return; }
-    for (const v of ["login", "home", "meetings", "settings", "live", "meeting"]) $("view-" + v).hidden = v !== route.view;
+    for (const v of ["login", "home", "meetings", "settings", "live", "meeting", "team"]) { const el = $("view-" + v); if (el) el.hidden = v !== route.view; }
     if (route.view === "login") return;
     document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("active", a.dataset.nav === route.view));
     if (route.view === "home") { renderHome(); checkReminders(); }
     if (route.view === "meetings") renderMeetings();
     if (route.view === "settings") renderSettings();
     if (route.view === "meeting") renderMeetingPage(route.id);
+    document.dispatchEvent(new CustomEvent("aether:route", { detail: { view: route.view, id: route.id } }));
     if (route.view === "live" && !listening && !$("transcript").children.length) resetLiveView();
   }
   window.addEventListener("hashchange", onRoute);
@@ -1459,6 +1472,7 @@
     get user() { return Auth.current; },
     get route() { return { ...route }; },
     Store, Manual, Profile, findTaskTarget, agentContext, todayString, toast, esc,
+    collectTasks, setTaskDone, setTaskDue, dueLabel, dueClass, isoDate, fromIso, startOfDay, isMineOwner, fmtDate, fmtDuration,
     rerender() {
       if (route.view === "home") renderHome();
       if (route.view === "meeting" && route.id) renderMeetingPage(route.id);
