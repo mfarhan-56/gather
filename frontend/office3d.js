@@ -255,6 +255,7 @@ function buildScene() {
   camera = new THREE.PerspectiveCamera(42, 1, 0.05, 30);
 
   const std = (o) => new THREE.MeshStandardMaterial(o);
+  const bg = (o) => new THREE.MeshLambertMaterial({ color: o.color, map: o.map }); // big, mostly-dark surfaces
   const add = (geo, mat, pos, rot, shadow = true) => {
     const m = new THREE.Mesh(geo, mat);
     m.position.set(...pos);
@@ -266,8 +267,8 @@ function buildScene() {
   const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 
   // room
-  add(new THREE.PlaneGeometry(14, 14), std({ map: woodTex("#3a2618", "#120a05", 3, 8), roughness: 0.8 }), [0, 0, 0], [-Math.PI / 2, 0, 0], false);
-  const wallMat = std({ color: 0x1b1a24, roughness: 0.95 });
+  add(new THREE.PlaneGeometry(14, 14), bg({ map: woodTex("#3a2618", "#120a05", 3, 8), roughness: 0.8 }), [0, 0, 0], [-Math.PI / 2, 0, 0], false);
+  const wallMat = bg({ color: 0x1b1a24, roughness: 0.95 });
   add(new THREE.PlaneGeometry(14, 5), wallMat, [0, 2.5, -2.4], null, false);
   add(new THREE.PlaneGeometry(10, 5), wallMat, [-3.2, 2.5, 0], [0, Math.PI / 2, 0], false);
   add(new THREE.PlaneGeometry(10, 5), wallMat, [3.2, 2.5, 0], [0, -Math.PI / 2, 0], false);
@@ -277,11 +278,11 @@ function buildScene() {
   for (const [w, h, x, y] of [[3.5, 0.06, 0.3, 2.82], [3.5, 0.06, 0.3, 1.08], [0.06, 1.8, -1.42, 1.95], [0.06, 1.8, 2.02, 1.95], [0.04, 1.75, 0.3, 1.95]])
     add(box(w, h, 0.06), frame, [x, y, -2.36], null, false);
   // bookshelf (left) and plant (right) for depth
-  const shelfMat = std({ map: woodTex("#2a1b12", "#0d0805", 11), roughness: 0.7 });
+  const shelfMat = bg({ map: woodTex("#2a1b12", "#0d0805", 11), roughness: 0.7 });
   add(box(0.9, 2.2, 0.36), shelfMat, [-2.4, 1.1, -1.9]);
   const bookColors = [0x5b3a8c, 0x2d5a6b, 0x7a3b2e, 0x3a3a48, 0x8b6a2e, 0x274b3a];
   for (let s = 0; s < 4; s++) for (let b = 0; b < 9; b++)
-    add(box(0.07, 0.3 + ((b * 7 + s) % 4) * 0.03, 0.24), std({ color: bookColors[(b + s) % 6], roughness: 0.8 }), [-2.78 + b * 0.085, 0.38 + s * 0.5, -1.82]);
+    add(box(0.07, 0.3 + ((b * 7 + s) % 4) * 0.03, 0.24), bg({ color: bookColors[(b + s) % 6], roughness: 0.8 }), [-2.78 + b * 0.085, 0.38 + s * 0.5, -1.82]);
   add(new THREE.CylinderGeometry(0.16, 0.12, 0.38, 24), std({ color: 0x2b2a33, roughness: 0.6 }), [2.4, 0.19, -1.6]);
   for (let i = 0; i < 9; i++) {
     const leaf = add(new THREE.SphereGeometry(0.14, 12, 10), std({ color: 0x1f4a33, roughness: 0.9 }), [2.4 + Math.sin(i * 2.1) * 0.16, 0.55 + i * 0.07, -1.6 + Math.cos(i * 2.1) * 0.16]);
@@ -351,7 +352,7 @@ function buildScene() {
   scene.add(lamp, lamp.target);
   const windowLight = new THREE.DirectionalLight(0x8f9cff, 0.55);
   windowLight.position.set(0.5, 2.6, -2.2); windowLight.target.position.set(0, 0.7, 0);
-  windowLight.castShadow = true; windowLight.shadow.mapSize.set(1024, 1024);
+  windowLight.castShadow = false; // measured: a second shadowed light costs ~6 ms/frame on integrated GPUs
   windowLight.shadow.camera.left = -2; windowLight.shadow.camera.right = 2; windowLight.shadow.camera.top = 2; windowLight.shadow.camera.bottom = -2;
   scene.add(windowLight, windowLight.target);
   const glow = new THREE.PointLight(0x8b7cff, 0.9, 1.6, 2);
@@ -359,9 +360,43 @@ function buildScene() {
   scene.add(glow);
   const rim = new THREE.PointLight(0x3ad6e8, 0.6, 3.5, 2);
   rim.position.set(1.6, 1.5, 0.8);
-  scene.add(rim);
+  // (rim light removed: measured cost without visible benefit)
 }
 
+// ---------------------------------------------------------------- adaptive quality
+// Pick the sharpest render scale that keeps a frame under budget on this GPU (measured, not guessed).
+const SCALES = [2, 1.5, 1.25, 1, 0.85, 0.75, 0.65, 0.55];
+let scaleIdx = 3;
+function frameCost(scale) {
+  renderer.setPixelRatio(scale);
+  renderer.setSize(canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight, false);
+  const gl = renderer.getContext(), px = new Uint8Array(4);
+  const p = SHOTS.desk[0], l = SHOTS.desk[1];
+  camera.position.set(p[0], p[1], p[2]); camera.lookAt(l[0], l[1], l[2]);
+  for (let i = 0; i < 4; i++) { renderer.render(scene, camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+  const samples = [];
+  for (let i = 0; i < 9; i++) {
+    const t0 = performance.now();
+    camera.position.x += i % 2 ? 0.002 : -0.002;
+    renderer.render(scene, camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    samples.push(performance.now() - t0);
+  }
+  samples.sort((x, y) => x - y);
+  return samples[4]; // median: robust to one-off hiccups
+}
+function pickQuality() {
+  const BUDGET = 14.5; // ms incl. ~4 ms sync overhead => ~10.5 ms GPU, headroom under 16.7 ms at 60 Hz
+  const maxScale = Math.min(window.devicePixelRatio || 1, 2);
+  let i = SCALES.findIndex((x) => x <= maxScale);
+  try {
+    renderer.compile(scene, camera);
+    frameCost(1); frameCost(1); // warm-up: shader programs + GPU clock ramp
+    while (i < SCALES.length - 1 && frameCost(SCALES[i]) > BUDGET) i++;
+  } catch (e) { i = SCALES.indexOf(0.75); }
+  scaleIdx = i;
+  renderer.setPixelRatio(SCALES[i]);
+  view.dataset.renderScale = SCALES[i];
+}
 function resize() {
   if (!ready) return;
   const w = canvas.clientWidth || window.innerWidth, h = canvas.clientHeight || window.innerHeight;
@@ -375,14 +410,19 @@ async function init() {
   if (ready || failed) return;
   try {
     THREE = await import("./vendor/three.module.min.js");
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    const GQ = new URLSearchParams(location.search).get("gq") || "";
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate = false; // nothing in the room moves: render shadow maps once
     buildScene();
+    renderer.shadowMap.needsUpdate = true;
+    if (GQ.includes("dbg")) window.__office = { renderer, scene, camera, THREE }; // measurement hook only
+    pickQuality();
     ready = true;
     introStart = performance.now();
     view.classList.add("office-ready");
