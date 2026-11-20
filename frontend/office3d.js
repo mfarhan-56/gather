@@ -13,14 +13,14 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const MIN_WIDTH = 980;
 
 // Camera framing per station: [position, lookAt]. Panels sit on the opposite side of each object.
-// Text always reads on the left (inside the scrim); every object is framed on the right of the screen.
+// Text alternates sides (see .station-left / .station-right); each object is framed on the opposite side.
 const SHOTS = {
-  desk:     [[0.00, 1.50, 1.95], [-0.25, 0.80, -0.40]],
-  overview: [[-0.50, 1.40, 0.62], [-0.76, 0.74, -0.12]],
-  planner:  [[0.10, 1.40, 0.72], [-0.12, 0.75, 0.00]],
-  monitor:  [[0.22, 1.24, 0.40], [-0.02, 1.00, -0.72]],
-  tray:     [[-0.86, 1.38, 0.30], [-1.30, 0.80, -0.58]],
-  notes:    [[0.94, 1.38, 0.38], [0.68, 0.84, -0.50]],
+  desk:     [[0.00, 1.50, 1.95], [-0.25, 0.80, -0.40]],  // text left  -> desk right
+  overview: [[-0.22, 1.40, 0.62], [-0.08, 0.74, -0.12]], // text right -> paper left
+  planner:  [[0.10, 1.40, 0.72], [-0.12, 0.75, 0.00]],   // text left  -> planner right
+  monitor:  [[0.52, 1.24, 0.34], [0.80, 1.00, -0.72]],   // text right -> monitor left
+  tray:     [[-0.86, 1.38, 0.30], [-1.30, 0.80, -0.58]], // text left  -> tray right
+  notes:    [[0.92, 1.38, 0.36], [1.36, 0.84, -0.50]],   // text right -> calendar left
 };
 
 let THREE, renderer, scene, camera, ready = false, failed = false;

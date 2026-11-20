@@ -214,8 +214,15 @@
   .office-on .station-panel, .office-on .station-copy, .office-scrim { transition: none; }
 }
 
-/* all reading happens on the left, inside the scrim (objects are framed on the right) */
-.office-on .station, .office-on .station-right { justify-content: flex-start; padding-left: 7vw; padding-right: 10vw; }
-.office-on .station-right .station-panel, .office-on .station-panel, .office-on .station-copy { margin-left: 0; margin-right: auto; }
-.office-on .scrim-left { opacity: 1 !important; }
-.office-on .scrim-right { opacity: 0 !important; }
+/* text alternates sides; the shadow is attached to the text block itself, so it is always behind it */
+.office-scrim { display: none !important; }
+.office-on .station-left, .office-on .station-arrival { justify-content: flex-start; padding-left: 7vw; padding-right: 10vw; }
+.office-on .station-right { justify-content: flex-end; padding-left: 10vw; padding-right: 12vw; }
+.office-on .station-left .station-panel, .office-on .station-arrival .station-copy { margin-left: 0; margin-right: auto; }
+.office-on .station-right .station-panel { margin-left: auto; margin-right: 0; }
+.office-on .station-panel, .office-on .station-copy { isolation: isolate; overflow: visible; max-height: none; }
+.office-on .station-panel::before, .office-on .station-copy::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  inset: -22vh -14vw;                         /* extends well past the text on every side */
+  background: radial-gradient(closest-side, rgba(5, 4, 4, 0.92) 0%, rgba(5, 4, 4, 0.82) 52%, rgba(5, 4, 4, 0.45) 78%, transparent 100%);
+}
