@@ -1,7 +1,7 @@
-// AETHER demo account data. Builds a realistic two-week history relative to "now",
+// Gather demo account data. Builds a realistic two-week history relative to "now",
 // so the dashboard always shows overdue / today / this-week items whenever the demo is opened.
 window.AETHER_DEMO = (() => {
-  const DEMO = { email: "demo@aether.app", password: "demo1234", name: "Alex Morgan" };
+  const DEMO = { email: "demo@gather.app", password: "demo1234", name: "Alex Morgan" };
   const DAY = 86400000;
 
   function build(now = Date.now()) {

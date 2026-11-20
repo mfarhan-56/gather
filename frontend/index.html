@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AETHER — Real-Time Meeting Copilot</title>
+  <title>Gather — Real-Time Meeting Copilot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/theme.css" />
   <link rel="stylesheet" href="/static/office.css" />
 </head>
 <body>
@@ -14,9 +15,9 @@
 
   <header class="topbar">
     <a class="brand" href="#/">
-      <div class="logo"><span></span></div>
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5"/><path d="M22.5 11.2A8 8 0 1 0 24 16h-7.5"/></svg>
       <div>
-        <h1>AETHER</h1>
+        <h1>Gather</h1>
         <p>Real-time meeting copilot</p>
       </div>
     </a>
@@ -31,7 +32,7 @@
       <button class="avatar-btn" id="avatarBtn" title="Account">?</button>
       <div class="menu" id="userMenu" hidden>
         <div class="menu-head"><b id="menuName"></b><span id="menuEmail"></span></div>
-        <a href="#/settings" id="menuSettings">⚙ Settings</a>
+        <a href="#/settings" id="menuSettings">Settings</a>
         <button id="logoutBtn">↩ Log out</button>
       </div>
     </div>
@@ -42,8 +43,8 @@
     <section class="view login" id="view-login" hidden>
       <div class="login-card">
         <div class="brand big">
-          <div class="logo"><span></span></div>
-          <div><h1>AETHER</h1><p>Real-time meeting copilot</p></div>
+          <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5"/><path d="M22.5 11.2A8 8 0 1 0 24 16h-7.5"/></svg>
+          <div><h1>Gather</h1><p>Real-time meeting copilot</p></div>
         </div>
         <div class="seg" id="authSeg">
           <button class="seg-btn active" type="button" data-mode="signin">Sign in</button>
@@ -57,7 +58,7 @@
           <button class="btn primary lg full" type="submit" id="authSubmit">Sign in</button>
         </form>
         <div class="demo-hint">
-          <span>🎬 Demo account: <code>demo@aether.app</code> · <code>demo1234</code></span>
+          <span>Demo account: <code>demo@gather.app</code> · <code>demo1234</code></span>
           <button class="btn ghost xs" type="button" id="fillDemo">Fill</button>
         </div>
         <p class="muted small center">Accounts are stored privately in this browser.</p>
@@ -66,12 +67,12 @@
 
     <!-- ================= SETTINGS ================= -->
     <section class="view page" id="view-settings" hidden>
-      <div class="hero"><div><h2>Settings</h2><p class="muted">Personalize AETHER and your dashboard.</p></div></div>
+      <div class="hero"><div><h2>Settings</h2><p class="muted">Personalize Gather and your dashboard.</p></div></div>
       <div class="settings-grid">
         <div class="panel">
           <div class="panel-head"><h2>Profile</h2></div>
           <label class="field">Full name<input id="setName" maxlength="60" /></label>
-          <p class="muted small">AETHER uses your name to recognise tasks people assign to you in meetings.</p>
+          <p class="muted small">Gather uses your name to recognise tasks people assign to you in meetings.</p>
           <label class="field">Email (login)<input id="setEmail" type="email" disabled /></label>
           <div class="row">
             <button class="btn primary sm" id="saveProfile">Save profile</button>
@@ -99,8 +100,8 @@
         </div>
         <div class="panel">
           <div class="panel-head"><h2>Reminders</h2></div>
-          <p class="muted small">Desktop notifications for tasks due today or overdue, while AETHER is open in a tab.</p>
-          <button class="btn ghost" id="remindBtn">🔔 Enable reminders</button>
+          <p class="muted small">Desktop notifications for tasks due today or overdue, while Gather is open in a tab.</p>
+          <button class="btn ghost" id="remindBtn">Enable reminders</button>
         </div>
       </div>
     </section>
@@ -109,14 +110,14 @@
     <!-- All ids, data-widget attributes and controls are unchanged; renderHome() in app.js fills them.
          office3d.js adds the 3D desk scene behind these stations and drives the camera from scroll. -->
     <section class="view page office-view" id="view-home" hidden>
-      <div class="office-stage" aria-hidden="true"><canvas id="officeCanvas"></canvas><div class="office-vignette"></div></div>
+      <div class="office-stage" aria-hidden="true"><canvas id="officeCanvas"></canvas><div class="office-vignette"></div><div class="office-scrim scrim-left"></div><div class="office-scrim scrim-right"></div></div>
       <nav class="station-nav" id="stationNav" aria-label="Dashboard sections"></nav>
       <div class="scroll-cue" id="scrollCue" aria-hidden="true"><span>Scroll</span><i></i></div>
 
       <div class="stations mgr-grid" id="mgrGrid">
         <section class="station station-arrival" data-station="desk" data-label="Your desk">
           <div class="station-copy hero">
-            <div class="kicker">AETHER · Your desk</div>
+            <div class="kicker">Gather · Your desk</div>
             <h2 id="greeting">Welcome back</h2>
             <p class="muted" id="heroLine">Your commitments, deadlines and progress across every meeting.</p>
             <div class="hero-actions">
@@ -218,7 +219,7 @@
     <!-- ================= LIVE MEETING ================= -->
     <section class="view live" id="view-live" hidden>
       <div class="livebar">
-        <label class="title-wrap" title="Click to rename"><input class="title-input" id="liveTitle" placeholder="Name this meeting…" /><span class="pencil">✎</span></label>
+        <label class="title-wrap" title="Click to rename"><input class="title-input" id="liveTitle" placeholder="Name this meeting…" /><span class="pencil"></span></label>
         <div class="status">
           <div class="pill listen" id="listenPill"><i class="dot"></i><span id="listenText">Idle</span></div>
           <div class="meter" title="Your microphone"><label>You</label><div class="bar"><b id="micLevel"></b></div></div>
@@ -226,7 +227,7 @@
           <div class="timer" id="timer">00:00</div>
         </div>
         <div class="controls">
-          <button class="btn ghost" id="pipBtn" title="Float AETHER on top of your meeting window">⧉ Pop out</button>
+          <button class="btn ghost" id="pipBtn" title="Float Gather on top of your meeting window">⧉ Pop out</button>
           <button class="btn primary" id="startBtn">● Start listening</button>
           <button class="btn danger" id="stopBtn" disabled>■ Stop &amp; save</button>
         </div>
@@ -245,7 +246,7 @@
         <section class="col">
           <div class="panel suggestions-panel">
             <div class="panel-head">
-              <h2><span class="spark">✦</span> AI Suggestions</h2>
+              <h2><span class="spark"></span> AI Suggestions</h2>
               <span class="hint">Appear when someone asks you something</span>
             </div>
             <div id="suggestions" class="stack"></div>
@@ -275,11 +276,11 @@
             <div id="decisions" class="list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>🤝 Commitments</h2><span class="count" id="cnt-commitments">0</span></div>
+            <div class="panel-head"><h2>Commitments</h2><span class="count" id="cnt-commitments">0</span></div>
             <div id="commitments" class="list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>⏰ Deadlines</h2><span class="count" id="cnt-deadlines">0</span></div>
+            <div class="panel-head"><h2>Deadlines</h2><span class="count" id="cnt-deadlines">0</span></div>
             <div id="deadlines" class="list"></div>
           </div>
         </section>
@@ -291,11 +292,11 @@
       <a class="back" href="#/">← Dashboard</a>
       <div class="meeting-head">
         <div class="grow">
-          <label class="title-wrap" title="Click to rename"><input class="title-input big" id="mTitle" placeholder="Name this meeting…" /><span class="pencil">✎</span></label>
+          <label class="title-wrap" title="Click to rename"><input class="title-input big" id="mTitle" placeholder="Name this meeting…" /><span class="pencil"></span></label>
           <div class="meta" id="mMeta"></div>
         </div>
         <div class="controls">
-          <button class="btn ghost" id="mExport">⬇ Export</button>
+          <button class="btn ghost" id="mExport">Export</button>
           <button class="btn danger" id="mDelete">Delete</button>
         </div>
       </div>
@@ -303,11 +304,11 @@
       <div class="detail-grid">
         <div class="col-flow">
           <div class="panel">
-            <div class="panel-head"><h2>✦ Summary</h2><button class="btn ghost sm" id="mRegen">↻ Regenerate</button></div>
+            <div class="panel-head"><h2>Summary</h2><button class="btn ghost sm" id="mRegen">↻ Regenerate</button></div>
             <div class="summary-body" id="mSummary"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>✉ Follow-up message</h2><button class="btn ghost sm" id="mFollowGen">✦ Draft</button></div>
+            <div class="panel-head"><h2>Follow-up message</h2><button class="btn ghost sm" id="mFollowGen">Draft</button></div>
             <div id="mFollow"><div class="empty small">Draft a ready-to-send recap for the participants: decisions, who does what, and deadlines.</div></div>
           </div>
           <div class="panel">
@@ -317,23 +318,23 @@
         </div>
         <div class="col-flow">
           <div class="panel">
-            <div class="panel-head"><h2>⚖️ Decisions</h2><span class="count" id="m-cnt-decisions">0</span></div>
+            <div class="panel-head"><h2>Decisions</h2><span class="count" id="m-cnt-decisions">0</span></div>
             <div id="m-decisions" class="list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>🤝 Commitments</h2><span class="count" id="m-cnt-commitments">0</span></div>
+            <div class="panel-head"><h2>Commitments</h2><span class="count" id="m-cnt-commitments">0</span></div>
             <div id="m-commitments" class="list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>✅ Action Items</h2><span class="count" id="m-cnt-action_items">0</span></div>
+            <div class="panel-head"><h2>Action Items</h2><span class="count" id="m-cnt-action_items">0</span></div>
             <div id="m-action_items" class="list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>🔁 Follow-ups</h2><span class="count" id="m-cnt-follow_ups">0</span></div>
+            <div class="panel-head"><h2>Follow-ups</h2><span class="count" id="m-cnt-follow_ups">0</span></div>
             <div id="m-follow_ups" class="list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>⏰ Deadlines</h2><span class="count" id="m-cnt-deadlines">0</span></div>
+            <div class="panel-head"><h2>Deadlines</h2><span class="count" id="m-cnt-deadlines">0</span></div>
             <div id="m-deadlines" class="list"></div>
           </div>
           <div class="panel">
@@ -345,7 +346,7 @@
             <div id="m-key_points" class="list"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>Suggestions AETHER gave</h2><span class="count" id="m-sugg-count">0</span></div>
+            <div class="panel-head"><h2>Suggestions Gather gave</h2><span class="count" id="m-sugg-count">0</span></div>
             <div id="m-suggestions" class="stack"></div>
           </div>
         </div>
@@ -367,9 +368,9 @@
         <span><b>Open floating copilot</b><br><small>A small always-on-top window with live suggestions that stays above your meeting (Meet, Zoom, Teams).</small></span>
       </label>
       <label class="check"><input type="checkbox" id="optConsent" />
-        <span><b>Everyone in this meeting knows AETHER is listening.</b><br><small>Recording or transcribing people without consent may be illegal where you are.</small></span>
+        <span><b>Everyone in this meeting knows Gather is listening.</b><br><small>Recording or transcribing people without consent may be illegal where you are.</small></span>
       </label>
-      <p class="tip">🎧 Tip: use headphones so your mic doesn't pick up the other speakers twice.</p>
+      <p class="tip">Tip: use headphones so your mic doesn't pick up the other speakers twice.</p>
       <div class="modal-actions">
         <button class="btn ghost" id="cancelStart">Cancel</button>
         <button class="btn primary" id="confirmStart" disabled>Start</button>
@@ -377,11 +378,11 @@
     </div>
   </div>
 
-  <!-- AETHER Agent -->
+  <!-- Gather Agent -->
   <div class="modal" id="agentModal" hidden>
     <div class="modal-card wide">
       <div class="modal-top">
-        <h3>⚡ AETHER Agent</h3>
+        <h3>Gather Agent</h3>
         <div>
           <button class="btn ghost sm" id="agentRerun">↻ Redo</button>
           <button class="btn ghost sm" id="agentClose">✕</button>

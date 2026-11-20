@@ -1,4 +1,4 @@
-// AETHER frontend
+// Gather frontend
 //  - Dashboard (#/)            : stats, meeting history, open action items across meetings
 //  - Live meeting (#/live)     : captures mic + meeting audio, live transcript + AI insights
 //  - Meeting page (#/meeting/X): saved transcript, summary, items for one meeting
@@ -344,7 +344,7 @@
     $("liveTitle").value = current ? current.title : "";
     renderInsights(current ? current.state : emptyState(), [], "", current?.id);
     if (!current) {
-      $("transcript").innerHTML = `<div class="empty"><div class="empty-icon">🎙</div>
+      $("transcript").innerHTML = `<div class="empty"><div class="empty-icon"></div>
         <p>Press <b>Start listening</b>, allow the microphone, then choose your meeting tab (or entire screen) and tick <b>“Share audio”</b>.</p></div>`;
     }
   }
@@ -387,7 +387,7 @@
     if (autoScroll) tbox.scrollTop = tbox.scrollHeight;
   }
 
-  const KIND = { answer: "💡 Possible answer", response: "💬 Suggested response", objection: "🛡 Handle objection", clarify: "❓ Clarify" };
+  const KIND = { answer: "Possible answer", response: "Suggested response", objection: "Handle objection", clarify: "Clarify" };
   function suggestionEl(s, old = false, typing = false) {
     const el = document.createElement("div");
     el.className = "sugg" + (old ? " old" : "") + (typing ? " typing" : "");
@@ -411,45 +411,45 @@
   // =====================================================================
   // Insight cards (shared by live view and meeting page)
   // =====================================================================
-  const tagOwner = (o) => (o ? `<span class="tag ${/^you$/i.test(o) ? "me" : ""}">👤 ${esc(o)}</span>` : "");
-  const tagWhen = (w) => (w ? `<span class="tag">📅 ${esc(w)}</span>` : "");
+  const tagOwner = (o) => (o ? `<span class="tag ${/^you$/i.test(o) ? "me" : ""}">${esc(o)}</span>` : "");
+  const tagWhen = (w) => (w ? `<span class="tag">${esc(w)}</span>` : "");
   const RENDER = {
     action_items: (it, mid) => `
       <div class="item ${it.done ? "done" : ""}" data-id="${esc(it.id)}">
         <input type="checkbox" ${it.done ? "checked" : ""} data-toggle="${esc(it.id)}" data-meeting="${esc(mid)}" />
         <div class="body"><div class="main">${esc(it.task)}</div>
-        <div class="sub">${tagOwner(it.owner)}${tagWhen(it.deadline)}${it.assigned_by ? `<span class="tag">🗣 from ${esc(it.assigned_by)}</span>` : ""}<span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span></div></div>
-        ${it.done || !mid ? "" : `<button class="btn agent-btn ${it.agent ? "ready" : ""}" data-agent="m:${esc(mid)}:${esc(it.id)}" title="Let AETHER Agent handle this">${it.agent ? "Ready" : "Do it"}</button>`}
+        <div class="sub">${tagOwner(it.owner)}${tagWhen(it.deadline)}${it.assigned_by ? `<span class="tag">from ${esc(it.assigned_by)}</span>` : ""}<span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span></div></div>
+        ${it.done || !mid ? "" : `<button class="btn agent-btn ${it.agent ? "ready" : ""}" data-agent="m:${esc(mid)}:${esc(it.id)}" title="Let Gather Agent handle this">${it.agent ? "Ready" : "Do it"}</button>`}
       </div>`,
     decisions: (it) => `
-      <div class="item" data-id="${esc(it.id)}"><div class="icon">⚖️</div>
+      <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main">${esc(it.decision)}</div>
-        <div class="sub"><span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span>${it.decided_by ? `<span class="tag">🗣 ${esc(it.decided_by)}</span>` : ""}${it.context ? `<span>${esc(it.context)}</span>` : ""}</div></div>
+        <div class="sub"><span class="tag ${esc(it.status)}">${esc(it.status || "proposed")}</span>${it.decided_by ? `<span class="tag">${esc(it.decided_by)}</span>` : ""}${it.context ? `<span>${esc(it.context)}</span>` : ""}</div></div>
       </div>`,
     commitments: (it) => `
-      <div class="item" data-id="${esc(it.id)}"><div class="icon">🤝</div>
+      <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main"><b>${esc(it.who || "Someone")}</b>${it.to_whom ? ` → ${esc(it.to_whom)}` : ""}: ${esc(it.commitment)}</div>
         <div class="sub">${tagWhen(it.when)}</div></div>
       </div>`,
     follow_ups: (it) => `
-      <div class="item" data-id="${esc(it.id)}"><div class="icon">🔁</div>
+      <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main">${esc(it.item)}</div>
         <div class="sub">${tagOwner(it.owner)}${it.reason ? `<span>${esc(it.reason)}</span>` : ""}</div></div>
       </div>`,
     deadlines: (it) => `
-      <div class="item" data-id="${esc(it.id)}"><div class="icon">⏰</div>
+      <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main">${esc(it.what)}</div>
         <div class="sub">${tagWhen(it.when)}${tagOwner(it.who)}</div></div>
       </div>`,
     key_points: (it) => `
-      <div class="item" data-id="${esc(it.id)}"><div class="icon">📌</div>
+      <div class="item" data-id="${esc(it.id)}"><div class="icon"></div>
         <div class="body"><div class="main">${esc(it.point)}</div></div>
       </div>`,
     concerns: (it) => `
-      <div class="item" data-id="${esc(it.id)}"><div class="icon">${it.type === "objection" ? "🛑" : it.type === "risk" ? "⚠️" : "❔"}</div>
+      <div class="item" data-id="${esc(it.id)}"><div class="icon">${it.type === "objection" ? "" : it.type === "risk" ? "" : ""}</div>
         <div class="body"><div class="main">${esc(it.issue)}</div>
         <div class="sub"><span class="tag ${esc(it.type)}">${esc((it.type || "risk").replace("_", " "))}</span>${it.resolved ? `<span class="tag resolved">resolved</span>` : ""}</div>
-        ${it.suggestion && !it.resolved ? `<div class="reply">💬 ${esc(it.suggestion)}</div>` : ""}</div>
+        ${it.suggestion && !it.resolved ? `<div class="reply">${esc(it.suggestion)}</div>` : ""}</div>
       </div>`,
   };
 
@@ -631,7 +631,7 @@
           <div class="sub">${t.due ? `<span class="tag due ${dueClass(t.due)}">${esc(dueLabel(t.due))}</span>` : ""}${ownerTag}${t.status === "proposed" ? `<span class="tag proposed">proposed</span>` : ""}${src}</div>
         </div>
         ${t.done ? "" : `<input type="date" class="due-input" title="Change due date" data-ref="${esc(t.ref)}" data-due="1" value="${t.due ? isoDate(t.due) : ""}" />`}
-        ${t.done || !t.mine ? "" : `<button class="btn agent-btn ${t.agent ? "ready" : ""}" data-agent="${esc(t.ref)}" title="Let AETHER Agent handle this">${t.agent ? "Ready" : "Do it"}</button>`}
+        ${t.done || !t.mine ? "" : `<button class="btn agent-btn ${t.agent ? "ready" : ""}" data-agent="${esc(t.ref)}" title="Let Gather Agent handle this">${t.agent ? "Ready" : "Do it"}</button>`}
       </div>`;
   }
 
@@ -674,7 +674,7 @@
     const urgent = [...overdue, ...dueToday.filter((t) => !overdue.includes(t))];
     $("dueBanner").hidden = !urgent.length || !W.banner;
     if (urgent.length) {
-      $("dueBanner").innerHTML = `<span>⚠️ ${overdue.length ? `<b>${overdue.length} overdue</b>` : ""}${overdue.length && dueToday.length ? " and " : ""}${dueToday.length ? `<b>${dueToday.length} due today</b>` : ""}: ${urgent.slice(0, 3).map((t) => esc(t.text)).join(" · ")}${urgent.length > 3 ? " …" : ""}</span>`;
+      $("dueBanner").innerHTML = `<span>${overdue.length ? `<b>${overdue.length} overdue</b>` : ""}${overdue.length && dueToday.length ? " and " : ""}${dueToday.length ? `<b>${dueToday.length} due today</b>` : ""}: ${urgent.slice(0, 3).map((t) => esc(t.text)).join(" · ")}${urgent.length > 3 ? " …" : ""}</span>`;
     }
     $("heroLine").textContent = openMine.length
       ? `You have ${openMine.length} open task${openMine.length === 1 ? "" : "s"}${dueWeek.length ? `, ${dueWeek.length} due this week` : ""}.`
@@ -744,13 +744,13 @@
     const b = $("remindBtn");
     if (!("Notification" in window)) { b.hidden = true; return; }
     const on = Notification.permission === "granted";
-    b.textContent = on ? "🔔 Reminders on" : Notification.permission === "denied" ? "🔕 Reminders blocked" : "🔔 Enable reminders";
+    b.textContent = on ? "Reminders on" : Notification.permission === "denied" ? "Reminders blocked" : "Enable reminders";
     b.disabled = on || Notification.permission === "denied";
   }
   $("remindBtn").onclick = async () => {
     const p = await Notification.requestPermission();
     updateRemindBtn();
-    if (p === "granted") { toast("Reminders enabled — AETHER will notify you about due and overdue tasks."); checkReminders(); }
+    if (p === "granted") { toast("Reminders enabled — Gather will notify you about due and overdue tasks."); checkReminders(); }
   };
   function checkReminders() {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -761,13 +761,13 @@
     const due = collectTasks().filter((t) => t.mine && !t.done && t.due && t.due <= today && !sent.includes(t.ref));
     if (!due.length) return;
     const body = due.length === 1 ? `${due[0].text} — ${dueLabel(due[0].due)}` : `${due.length} tasks need attention: ` + due.slice(0, 3).map((t) => t.text).join("; ");
-    try { new Notification("AETHER reminder", { body }); } catch {}
+    try { new Notification("Gather reminder", { body }); } catch {}
     localStorage.setItem(key, JSON.stringify([...sent, ...due.map((t) => t.ref)]));
   }
   setInterval(checkReminders, 10 * 60 * 1000);
 
   // =====================================================================
-  // AETHER Agent: reasons over the task + all meetings, produces deliverables
+  // Gather Agent: reasons over the task + all meetings, produces deliverables
   // =====================================================================
   let agentRef = null;
   function agentContext() {
@@ -795,7 +795,7 @@
     $("agentModal").hidden = false;
     $("agentTask").innerHTML = `<b>Task:</b> ${esc(it.task || it.text)}${mtg ? ` <span class="muted">· from ${esc(mtg.title)}${it.assigned_by ? `, assigned by ${esc(it.assigned_by)}` : ""}</span>` : ""}`;
     if (it.agent && !force) return renderAgent(it.agent);
-    $("agentBody").innerHTML = `<div class="loading"><div class="spinner"></div>AETHER Agent is thinking, planning and drafting…</div>`;
+    $("agentBody").innerHTML = `<div class="loading"><div class="spinner"></div>Gather Agent is thinking, planning and drafting…</div>`;
     try {
       const r = await fetch("/api/agent", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -819,16 +819,16 @@
   }
   function renderAgent(a) {
     const list = (arr) => (arr || []).map((x) => `<li>${esc(x)}</li>`).join("");
-    const ICON = { email: "✉", document: "📄", message: "💬" };
+    const ICON = { email: "", document: "", message: "" };
     let html = "";
-    if (a.thinking?.length) html += `<h2>🧠 Thinking</h2><ul class="agent-think">${list(a.thinking)}</ul>`;
-    if (a.plan?.length) html += `<h2>📋 Plan</h2><ol>${list(a.plan)}</ol>`;
-    if (a.questions?.length) html += `<h2>❓ Needs your input</h2><ul class="agent-q">${list(a.questions)}</ul>`;
+    if (a.thinking?.length) html += `<h2>Thinking</h2><ul class="agent-think">${list(a.thinking)}</ul>`;
+    if (a.plan?.length) html += `<h2>Plan</h2><ol>${list(a.plan)}</ol>`;
+    if (a.questions?.length) html += `<h2>Needs your input</h2><ul class="agent-q">${list(a.questions)}</ul>`;
     if (a.outputs?.length) {
-      html += `<h2>✅ Ready for your review</h2>`;
+      html += `<h2>Ready for your review</h2>`;
       a.outputs.forEach((o, i) => {
         html += `<div class="agent-out">
-          <div class="agent-out-head"><b>${ICON[o.type] || "📄"} ${esc(o.title || o.type)}</b>${o.to ? `<span class="muted"> · to ${esc(o.to)}</span>` : ""}</div>
+          <div class="agent-out-head"><b>${ICON[o.type] || ""} ${esc(o.title || o.type)}</b>${o.to ? `<span class="muted"> · to ${esc(o.to)}</span>` : ""}</div>
           ${o.subject ? `<div class="muted small">Subject: ${esc(o.subject)}</div>` : ""}
           <textarea class="followup-text agent-text" data-out="${i}">${esc(o.body || "")}</textarea>
           <div class="row">
@@ -838,7 +838,7 @@
           </div></div>`;
       });
     }
-    if (a.proactive?.length) html += `<h2>💡 Proactive</h2><ul>${list(a.proactive)}</ul>`;
+    if (a.proactive?.length) html += `<h2>Proactive</h2><ul>${list(a.proactive)}</ul>`;
     html += `<p class="muted small">Nothing has been sent. Review, edit and send it yourself.</p>`;
     $("agentBody").innerHTML = html;
     const body = $("agentBody");
@@ -899,7 +899,7 @@
     const shown = !q ? list : list.filter((m) =>
       (m.title + " " + (m.summary || "") + " " + (m.liveSummary || "") + " " + m.turns.map((t) => t.text).join(" ")).toLowerCase().includes(q));
     $("meetingList").innerHTML = shown.length ? shown.map(meetingCard).join("")
-      : `<div class="empty"><div class="empty-icon">🗂</div><p>${q ? "No meetings match your search." : "No meetings yet. Click <b>New meeting</b> on the dashboard to start."}</p></div>`;
+      : `<div class="empty"><div class="empty-icon"></div><p>${q ? "No meetings match your search." : "No meetings yet. Click <b>New meeting</b> on the dashboard to start."}</p></div>`;
   }
   $("search").oninput = renderMeetings;
 
@@ -922,16 +922,16 @@
     $("mTitle").value = m.title;
     const speakers = [...new Set(m.turns.map((t) => t.speaker))];
     $("mMeta").innerHTML = `
-      <span>📅 ${esc(fmtDate(m.startedAt))}</span>
-      <span>⏱ ${esc(fmtDuration(m.duration))}</span>
-      <span>👥 ${speakers.length} speaker${speakers.length === 1 ? "" : "s"}: ${esc(speakers.join(", "))}</span>`;
+      <span>${esc(fmtDate(m.startedAt))}</span>
+      <span>${esc(fmtDuration(m.duration))}</span>
+      <span>${speakers.length} speaker${speakers.length === 1 ? "" : "s"}: ${esc(speakers.join(", "))}</span>`;
 
     // summary
     const sb = $("mSummary");
     if (m.summary) sb.innerHTML = md(m.summary);
-    else if (summaryPendingFor === id) sb.innerHTML = `<div class="loading"><div class="spinner"></div>AETHER is writing the summary…</div>`;
+    else if (summaryPendingFor === id) sb.innerHTML = `<div class="loading"><div class="spinner"></div>Gather is writing the summary…</div>`;
     else sb.innerHTML = `<div class="empty small">${m.summaryError ? "Summary failed: " + esc(m.summaryError) + "<br><br>" : ""}
-      <button class="btn primary sm" id="mGen">✦ Generate summary</button></div>`;
+      <button class="btn primary sm" id="mGen">Generate summary</button></div>`;
     $("mGen")?.addEventListener("click", () => generateSummary(id));
 
     // transcript
@@ -960,7 +960,7 @@
       $("mFollowGen").textContent = "↻ Redraft";
     } else {
       box.innerHTML = `<div class="empty small">Draft a ready-to-send recap for the participants: decisions, who does what, and deadlines.</div>`;
-      $("mFollowGen").textContent = "✦ Draft";
+      $("mFollowGen").textContent = "Draft";
     }
   }
   $("mFollowGen").onclick = async () => {
@@ -987,7 +987,7 @@
   async function generateSummary(id) {
     const m = (current && current.id === id) ? current : Store.get(id);
     if (!m) return;
-    $("mSummary").innerHTML = `<div class="loading"><div class="spinner"></div>AETHER is writing the summary…</div>`;
+    $("mSummary").innerHTML = `<div class="loading"><div class="spinner"></div>Gather is writing the summary…</div>`;
     try {
       const r = await fetch("/api/summary", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -1056,21 +1056,21 @@
         const w = await documentPictureInPicture.requestWindow({ width: 380, height: 560 });
         this.win = w;
         const d = w.document;
-        d.title = "AETHER Copilot";
-        for (const href of ["https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap",
-                            location.origin + "/static/styles.css"]) {
+        d.title = "Gather Copilot";
+        for (const href of ["https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600&display=swap",
+                            location.origin + "/static/styles.css", location.origin + "/static/theme.css"]) {
           const l = d.createElement("link"); l.rel = "stylesheet"; l.href = href; d.head.appendChild(l);
         }
         d.body.className = "pip";
         d.body.innerHTML = `
           <div class="pip-head">
-            <div class="pip-brand"><div class="logo sm"><span></span></div><b>AETHER</b></div>
+            <div class="pip-brand"><svg class="mark sm" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5"/><path d="M22.5 11.2A8 8 0 1 0 24 16h-7.5"/></svg><b>Gather</b></div>
             <span class="pip-status" id="pStatus">Idle</span>
             <span class="timer" id="pTimer">00:00</span>
             <button class="btn danger sm" id="pStop">■ Stop</button>
           </div>
           <div class="pip-now" id="pNow"><span class="muted">Waiting for conversation…</span></div>
-          <div class="pip-label">✦ Suggestion</div>
+          <div class="pip-label">Suggestion</div>
           <div id="pSugg" class="pip-sugg"><div class="muted small">Replies appear here when someone asks you something.</div></div>
           <div class="pip-label">Latest insights</div>
           <div id="pFeed" class="pip-feed"></div>`;
@@ -1080,7 +1080,7 @@
         this.renderAll();
       } catch (e) {
         console.error(e);
-        if (auto) toast("Click “⧉ Pop out” to float AETHER over your meeting.", "info");
+        if (auto) toast("Click “⧉ Pop out” to float Gather over your meeting.", "info");
         else toast("Could not open the floating window: " + e.message, "error");
       }
     },
@@ -1128,7 +1128,7 @@
     renderFeed() {
       const box = this.el("pFeed");
       if (!box) return;
-      const ICON = { action_items: "✅", decisions: "⚖️", deadlines: "⏰", concerns: "⚠️", key_points: "📌", commitments: "🤝", follow_ups: "🔁" };
+      const ICON = { action_items: "", decisions: "", deadlines: "", concerns: "", key_points: "", commitments: "", follow_ups: "" };
       const TEXT = { action_items: (x) => x.task + (x.owner ? ` — ${x.owner}` : "") + (x.deadline ? ` (${x.deadline})` : ""),
                      decisions: (x) => x.decision, deadlines: (x) => `${x.what} — ${x.when}`,
                      concerns: (x) => x.issue, key_points: (x) => x.point,
@@ -1177,7 +1177,7 @@
     async signin(email, pw) {
       email = email.trim().toLowerCase();
       const D = window.AETHER_DEMO;
-      if (D && email === D.email) {
+      if (D && (email === D.email || email === "demo@aether.app")) {
         if (pw !== D.password) throw new Error("Incorrect password for the demo account.");
         return this.loginDemo();
       }
@@ -1189,12 +1189,13 @@
     loginDemo() {
       const D = window.AETHER_DEMO;
       const users = this.users();
-      let u = users.find((x) => x.email === D.email);
+      let u = users.find((x) => x.demo) || users.find((x) => x.email === D.email);
       if (!u) {
         u = { id: "udemo", name: D.name, email: D.email, hash: "demo", demo: true, created: Date.now() };
         users.push(u);
         this.saveUsers(users);
       }
+      if (u.email !== D.email) { u.email = D.email; this.saveUsers(users); }
       seedDemo(u.id);
       this.login(u);
     },

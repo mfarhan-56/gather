@@ -1,4 +1,4 @@
-// AETHER dashboard: first-person 3D office (presentation only).
+// Gather dashboard: first-person 3D office (presentation only).
 // - Three.js is loaded lazily, only when the dashboard is shown.
 // - Native page scroll drives the camera between desk objects ("stations").
 // - All dashboard data stays in the existing HTML panels rendered by app.js.
@@ -14,12 +14,12 @@ const MIN_WIDTH = 980;
 
 // Camera framing per station: [position, lookAt]. Panels sit on the opposite side of each object.
 const SHOTS = {
-  desk:     [[0.00, 1.42, 1.72], [0.00, 0.86, -0.45]],
-  overview: [[-0.30, 1.22, 0.42], [-0.18, 0.74, -0.12]],
-  planner:  [[0.30, 1.20, 0.50], [0.22, 0.74, -0.02]],
-  monitor:  [[-0.10, 1.10, 0.30], [0.38, 1.02, -0.70]],
-  tray:     [[-0.48, 1.12, 0.18], [-1.06, 0.80, -0.58]],
-  notes:    [[0.52, 1.12, 0.22], [1.08, 0.84, -0.52]],
+  desk:     [[0.00, 1.50, 1.95], [0.00, 0.80, -0.40]],
+  overview: [[-0.22, 1.40, 0.62], [-0.08, 0.74, -0.12]],
+  planner:  [[0.08, 1.40, 0.72], [-0.12, 0.75, 0.00]],
+  monitor:  [[0.52, 1.24, 0.34], [0.80, 1.00, -0.72]],
+  tray:     [[-0.86, 1.38, 0.30], [-1.30, 0.80, -0.58]],
+  notes:    [[0.92, 1.38, 0.36], [1.36, 0.84, -0.50]],
 };
 
 let THREE, renderer, scene, camera, ready = false, failed = false;
@@ -76,8 +76,7 @@ function stationProgress() {
   for (let i = 0; i < centers.length - 1; i++) {
     if (mid <= centers[i + 1]) {
       const raw = (mid - centers[i]) / (centers[i + 1] - centers[i]);
-      const held = Math.min(1, Math.max(0, (raw - 0.18) / 0.64)); // hold ~18% at each end
-      return { list, f: i + smooth(held) };
+      return { list, f: i + raw };
     }
   }
   return { list, f: centers.length - 1 };
@@ -86,6 +85,8 @@ function stationProgress() {
 function updateFromScroll() {
   const { list, f } = stationProgress();
   const active = Math.round(f);
+  const cur = list[active];
+  if (cur) view.dataset.side = cur.classList.contains("station-right") ? "right" : "left";
   nav.querySelectorAll("button").forEach((b, i) => b.classList.toggle("active", i === active));
   list.forEach((s, i) => s.classList.toggle("in-focus", Math.abs(f - i) < 0.42));
   cue.classList.toggle("gone", view.scrollTop > 40);
@@ -108,7 +109,7 @@ function tick() {
   for (const [cur, goal] of [[camPos, goalPos], [camLook, goalLook]]) {
     for (const k of ["x", "y", "z"]) {
       const d = goal[k] - cur[k];
-      if (Math.abs(d) > 0.0004) { cur[k] += d * 0.085; moving = true; } else cur[k] = goal[k];
+      if (Math.abs(d) > 0.0003) { cur[k] += d * 0.16; moving = true; } else cur[k] = goal[k];
     }
   }
   camera.position.set(camPos.x, camPos.y, camPos.z);
@@ -159,7 +160,7 @@ function paperTex(lines = 18, heading = true, hand = false) {
       g.fillStyle = hand ? "#1d3a8a" : "#2b2a33";
       g.fillRect(48, y, 120 + r() * (w - 200), hand ? 3 : 7);
     }
-    g.globalAlpha = 0.9; g.strokeStyle = "#8b7cff"; g.lineWidth = 4; // a touch of AETHER violet
+    g.globalAlpha = 0.9; g.strokeStyle = "#8b7cff"; g.lineWidth = 4; // a touch of Gather violet
     g.beginPath(); g.moveTo(48, 118); g.lineTo(140, 118); g.stroke();
     g.globalAlpha = 1;
   });
@@ -360,7 +361,7 @@ async function init() {
     updateFromScroll();
     kick();
   } catch (e) {
-    console.warn("AETHER office scene unavailable, using the standard dashboard layout.", e);
+    console.warn("Gather office scene unavailable, using the standard dashboard layout.", e);
     failed = true;
     applyMode();
   }

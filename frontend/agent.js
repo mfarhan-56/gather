@@ -1,4 +1,4 @@
-// AETHER Agent: real app actions (Composio: Gmail + Google Calendar).
+// Gather Agent: real app actions (Composio: Gmail + Google Calendar).
 // Uses only the public window.AETHER API from app.js and the "aether:agent-rendered" event.
 // Every action runs ONLY after the user clicks and confirms (human-in-the-loop).
 (() => {
@@ -58,7 +58,7 @@
     const p = document.getElementById("appsPanel");
     if (!p) return;
     if (!status.enabled) {
-      p.innerHTML = `<div class="panel-head"><h2>⚡ Connected apps</h2></div>
+      p.innerHTML = `<div class="panel-head"><h2>Connected apps</h2></div>
         <p class="muted small">App actions are not configured on this server (missing COMPOSIO_API_KEY).</p>`;
       return;
     }
@@ -69,15 +69,15 @@
         ${on ? `<span class="tag confirmed">Connected</span>` : `<button class="btn primary sm" data-connect="${key}">Connect</button>`}
       </div>`;
     };
-    p.innerHTML = `<div class="panel-head"><h2>⚡ Connected apps</h2><button class="btn ghost sm" id="appsRefresh">↻ Refresh</button></div>
-      <p class="muted small">Let AETHER Agent act for you. It only ever acts after you click and confirm.</p>
-      ${row("gmail", "Gmail", "✉")}
-      ${row("googlecalendar", "Google Calendar", "📅")}
-      ${row("slack", "Slack", "💬")}
-      ${row("notion", "Notion", "📓")}
-      ${row("googledocs", "Google Docs", "📄")}
-      ${row("github", "GitHub", "🐙")}
-      ${status.error ? `<p class="muted small">⚠ ${esc(status.error)}</p>` : ""}
+    p.innerHTML = `<div class="panel-head"><h2>Connected apps</h2><button class="btn ghost sm" id="appsRefresh">↻ Refresh</button></div>
+      <p class="muted small">Let Gather Agent act for you. It only ever acts after you click and confirm.</p>
+      ${row("gmail", "Gmail", "")}
+      ${row("googlecalendar", "Google Calendar", "")}
+      ${row("slack", "Slack", "")}
+      ${row("notion", "Notion", "")}
+      ${row("googledocs", "Google Docs", "")}
+      ${row("github", "GitHub", "")}
+      ${status.error ? `<p class="muted small">${esc(status.error)}</p>` : ""}
       <p class="muted small">Google's permission screen will show "Composio", our secure integration partner.</p>`;
     p.querySelector("#appsRefresh").onclick = () => refreshStatus().then(() => A.toast("Connections refreshed"));
     p.querySelectorAll("[data-connect]").forEach((b) => (b.onclick = () => connect(b.dataset.connect)));
@@ -149,8 +149,8 @@
           <label>Subject <input class="act-subject" value="${esc(o.subject || o.title || "")}" /></label>
         </div>
         <div class="row">
-          <button class="btn ghost sm" data-act="gmail_draft">📝 Save as Gmail draft</button>
-          <button class="btn primary sm" data-act="gmail_send">✉ Send via Gmail</button>
+          <button class="btn ghost sm" data-act="gmail_draft">Save as Gmail draft</button>
+          <button class="btn primary sm" data-act="gmail_send">Send via Gmail</button>
           ${status.connected.gmail ? "" : `<span class="muted small">Connect Gmail in Settings first.</span>`}
         </div>`;
       card.appendChild(box);
@@ -191,15 +191,15 @@
       ex.innerHTML = `
         <div class="muted small" style="margin-bottom:6px">Send this ${esc(o.type || "draft")} to an app:</div>
         <div class="row wrap">
-          <button class="btn ghost sm" data-x="slack">💬 Slack</button>
-          <button class="btn ghost sm" data-x="notion">📓 Notion page</button>
-          <button class="btn ghost sm" data-x="googledocs">📄 Google Doc</button>
+          <button class="btn ghost sm" data-x="slack">Slack</button>
+          <button class="btn ghost sm" data-x="notion">Notion page</button>
+          <button class="btn ghost sm" data-x="googledocs">Google Doc</button>
         </div>
         <div class="x-form"></div>`;
       card.appendChild(ex);
       const form = ex.querySelector(".x-form");
       const text = () => card.querySelector("textarea").value;
-      const title = () => (o.subject || o.title || (t && (t.obj.task || t.obj.text)) || "AETHER draft").slice(0, 180);
+      const title = () => (o.subject || o.title || (t && (t.obj.task || t.obj.text)) || "Gather draft").slice(0, 180);
 
       async function picker(what, labelText, placeholder) {
         form.innerHTML = `<div class="act-row"><label>${labelText}<select class="x-select"><option>Loading…</option></select></label></div>`;
@@ -262,12 +262,12 @@
     gh.className = "agent-out";
     const ghTitle = (t && (t.obj.task || t.obj.text)) || "Task from meeting";
     const ghBody = [
-      `**From AETHER** (meeting task)`, "",
+      `**From Gather** (meeting task)`, "",
       ...(data.plan?.length ? ["### Plan", ...data.plan.map((x, k) => `${k + 1}. ${x}`), ""] : []),
       ...(data.proactive?.length ? ["### Notes", ...data.proactive.map((x) => `- ${x}`)] : []),
     ].join("\n");
     gh.innerHTML = `
-      <div class="agent-out-head"><b>🐙 Track it as a GitHub issue</b></div>
+      <div class="agent-out-head"><b>Track it as a GitHub issue</b></div>
       <div class="row"><button class="btn ghost sm" id="ghStart">Choose repository…</button>
         ${status.connected.github ? "" : `<span class="muted small">Connect GitHub in Settings first.</span>`}</div>
       <div class="x-form" id="ghForm"></div>`;
@@ -306,7 +306,7 @@
     const start = new Date(Date.now() + 86400000); start.setHours(10, 0, 0, 0);
     const taskText = (t && (t.obj.task || t.obj.text)) || "Follow-up";
     cal.innerHTML = `
-      <div class="agent-out-head"><b>📅 Schedule it in Google Calendar</b></div>
+      <div class="agent-out-head"><b>Schedule it in Google Calendar</b></div>
       <div class="act-row">
         <label>Title <input class="cal-title" value="${esc(taskText)}" /></label>
         <label>Start <input type="datetime-local" class="cal-start" value="${localInput(start)}" /></label>
@@ -316,7 +316,7 @@
         <label>Invite (emails, optional) <input class="cal-att" placeholder="a@x.com, b@y.com" /></label>
       </div>
       <div class="row">
-        <button class="btn primary sm" id="calCreate">📅 Create event</button>
+        <button class="btn primary sm" id="calCreate">Create event</button>
         ${status.connected.googlecalendar ? "" : `<span class="muted small">Connect Google Calendar in Settings first.</span>`}
       </div>`;
     body.appendChild(cal);
@@ -335,14 +335,14 @@
           title, start: startVal, hours: Math.floor(minutes / 60), minutes: minutes % 60,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
           attendees, notify: !!attendees, meet: true,
-          description: `Created by AETHER from task: ${taskText}`,
+          description: `Created by Gather from task: ${taskText}`,
         } });
         logAction(ref, { type: "calendar_event", label: `Calendar event created: “${title}” (${new Date(startVal).toLocaleString()})`, link: r.link || null });
         A.toast("Event created in Google Calendar ✓");
         b.textContent = "✓ Created";
       } catch (err) {
         A.toast(err.message, "error");
-        b.disabled = false; b.textContent = "📅 Create event";
+        b.disabled = false; b.textContent = "Create event";
       }
     };
   });
