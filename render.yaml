@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: aether
+    name: gather
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -12,4 +12,6 @@ services:
       - key: ASSEMBLYAI_API_KEY
         sync: false
       - key: GROQ_API_KEY
+        sync: false
+      - key: COMPOSIO_API_KEY
         sync: false
