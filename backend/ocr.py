@@ -2,6 +2,7 @@
 Runs server-side with Groq's vision model so the API key never reaches the browser.
 Results are suggestions only; the user must accept them in the UI."""
 import json
+import logging
 import os
 import re
 
@@ -10,17 +11,21 @@ from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
 router = APIRouter()
+log = logging.getLogger("gather.ocr")
 VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.8-27b")
 PROMPT = ("This is a screenshot of a video meeting or shared screen. List ONLY the people's names you can actually read "
           "(video tile labels, participant list, name badges, speaker captions). Do not guess or invent names. "
           'Reply with JSON only: {"names": ["..."], "details": "other clearly visible meeting info, max 15 words, or empty"}')
 
 
-SPEAKER_PROMPT = ("This is a screenshot of a video meeting taken WHILE someone is talking. Identify the person who is "
-                  "currently speaking: the tile with a highlighted/coloured border or speaking indicator, or the large "
-                  "active-speaker view. Read the name label shown for that person. Only answer with a name you can "
-                  "actually read on screen; if you cannot tell who is speaking or cannot read the name, use null. "
-                  'Reply with JSON only: {"speaker": "name" or null, "confidence": number 0-1}')
+SPEAKER_PROMPT = ("This is a screenshot of a video meeting (Google Meet, Zoom, Teams...) taken while someone is talking. "
+                  "1) Read EVERY participant name label visible on screen (names on video tiles, participant panel, captions). "
+                  "Mark which one is the local user if the screen shows it (e.g. 'You', '(You)', 'Me'). "
+                  "2) Decide who is currently speaking from visual cues: highlighted or coloured tile border, blue/green ring, "
+                  "animated sound bars or speaker icon on a tile, or the large main active-speaker view. "
+                  "Only use names you can actually read. If no cue shows who is speaking, speaker is null. "
+                  'Reply with JSON only: {"names": ["every visible participant name"], "self": "the local user\'s label or null", '
+                  '"speaker": "name of the person speaking or null", "confidence": number 0-1, "cue": "what showed the speaker, max 8 words"}')
 
 
 @router.post("/api/ocr/speaker")
@@ -42,10 +47,14 @@ async def ocr_speaker(payload: dict = Body(...)):
         text = re.sub(r"<think>.*?</think>", "", r.json()["choices"][0]["message"].get("content") or "", flags=re.S)
         m = re.search(r"\{.*\}", text, re.S)
         data = json.loads(m.group(0)) if m else {}
-        name = data.get("speaker")
-        name = str(name).strip()[:60] if name and str(name).strip().lower() not in ("null", "none", "unknown") else None
+        clean = lambda v: str(v).strip()[:60] if v and str(v).strip().lower() not in ("null", "none", "unknown", "") else None
+        name = clean(data.get("speaker"))
+        names = [n for n in (clean(x) for x in (data.get("names") or [])) if n][:24]
         conf = float(data.get("confidence") or 0)
-        return {"speaker": name, "confidence": max(0.0, min(1.0, conf))}
+        out = {"speaker": name, "confidence": max(0.0, min(1.0, conf)), "names": names, "self": clean(data.get("self")),
+               "cue": str(data.get("cue") or "")[:80]}
+        log.info("speaker read: %s", out)
+        return out
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as e:
         return JSONResponse({"error": f"Speaker detection failed: {str(e)[:150]}"}, status_code=502)
 
