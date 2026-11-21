@@ -20,7 +20,7 @@ const SHOTS = {
   planner:  [[0.34, 1.40, 0.72], [0.54, 0.75, 0.00]],    // text right -> planner left
   monitor:  [[0.22, 1.24, 0.40], [-0.02, 1.00, -0.72]],  // text left  -> monitor right
   tray:     [[-1.02, 1.38, 0.30], [-0.62, 0.80, -0.58]], // text right -> tray left
-  notes:    [[0.94, 1.38, 0.38], [0.68, 0.84, -0.50]],   // text left  -> calendar right
+  notes:    [[0.98, 1.44, 0.56], [0.86, 0.84, -0.50]],   // text left  -> calendar right (clear of the station list)
 };
 
 let THREE, renderer, scene, camera, ready = false, failed = false;
@@ -129,6 +129,7 @@ function kick() {
 const _p = { x: 0, y: 0, z: 0 };
 function tick(now) {
   if (view.hidden || !posCurve) { animating = false; return; }
+  if (atRest) { atRest = false; clearTimeout(restTimer); setRatio(motionScale); } // moving again: lighter resolution
   const dt = Math.min(0.05, Math.max(0.001, (now - lastT) / 1000));
   lastT = now;
   // frame-rate independent critically-damped follow of the scroll position
@@ -149,7 +150,7 @@ function tick(now) {
   renderer.render(scene, camera);
 
   if (currentF !== targetF || ip < 1) requestAnimationFrame(tick);
-  else animating = false;
+  else { animating = false; scheduleRest(); }
 }
 
 // ---------------------------------------------------------------- procedural textures
@@ -365,7 +366,7 @@ function buildScene() {
 
 // ---------------------------------------------------------------- adaptive quality
 // Pick the sharpest render scale that keeps a frame under budget on this GPU (measured, not guessed).
-const SCALES = [2, 1.5, 1.25, 1, 0.85, 0.75, 0.65, 0.55];
+const SCALES = [2, 1.5, 1.25, 1, 0.85];
 let scaleIdx = 3;
 function frameCost(scale) {
   renderer.setPixelRatio(scale);
@@ -385,19 +386,36 @@ function frameCost(scale) {
   return samples[2]; // median of 5: robust to one-off hiccups
 }
 // Measured once per device, in small steps between frames (never one long freeze), then cached.
-const QUALITY_KEY = "gather.renderScale.v1";
+const QUALITY_KEY = "gather.renderScale.v2"; // v1 values could be too low (pixelated)
 function applyScale(scale) {
   const i = SCALES.indexOf(scale);
-  scaleIdx = i >= 0 ? i : SCALES.indexOf(0.75);
+  scaleIdx = i >= 0 ? i : SCALES.indexOf(0.85);
   renderer.setPixelRatio(SCALES[scaleIdx]);
   renderer.setSize(canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight, false);
   view.dataset.renderScale = SCALES[scaleIdx];
+}
+let motionScale = 0.85, restTimer = null, atRest = false;
+const restScale = () => Math.min(Math.max(window.devicePixelRatio || 1, 1), 2);
+function setRatio(r) {
+  if (Math.abs(renderer.getPixelRatio() - r) < 0.01) return false;
+  renderer.setPixelRatio(r);
+  renderer.setSize(canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight, false);
+  view.dataset.renderScale = r;
+  return true;
+}
+function scheduleRest() {
+  clearTimeout(restTimer);
+  restTimer = setTimeout(() => {
+    if (animating || !ready || view.hidden) return;
+    atRest = true;
+    if (setRatio(restScale())) renderer.render(scene, camera); // one crisp frame while you read
+  }, 160);
 }
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 async function pickQuality() {
   const cached = parseFloat(localStorage.getItem(QUALITY_KEY) || "");
   if (SCALES.includes(cached)) { applyScale(cached); return; }
-  applyScale(0.75); // safe default while measuring
+  applyScale(0.85); // safe default while measuring
   const BUDGET = 13; // ms incl. ~4 ms sync overhead => ~9 ms GPU, comfortable headroom under 16.7 ms at 60 Hz
   const maxScale = Math.min(window.devicePixelRatio || 1, 2);
   let i = SCALES.findIndex((x) => x <= maxScale);
@@ -406,13 +424,14 @@ async function pickQuality() {
     await nextFrame(); frameCost(1);            // warm-up: shader programs + GPU clock ramp
     await nextFrame();
     while (i < SCALES.length - 1) {
-      if (view.hidden) { applyScale(0.75); return; } // user left the dashboard: finish later
+      if (view.hidden) { applyScale(0.85); return; } // user left the dashboard: finish later
       const cost = frameCost(SCALES[i]);
       if (cost <= BUDGET) break;
       i++;
       await nextFrame();
     }
-  } catch (e) { i = SCALES.indexOf(0.75); }
+  } catch (e) { i = SCALES.indexOf(0.85); }
+  motionScale = SCALES[i];
   applyScale(SCALES[i]);
   try { localStorage.setItem(QUALITY_KEY, String(SCALES[i])); } catch {}
   animating = false; kick();
@@ -444,7 +463,8 @@ async function init() {
     try { if (renderer.compileAsync) await renderer.compileAsync(scene, camera); } catch (e) { /* falls back to compile-on-render */ }
     renderer.shadowMap.needsUpdate = true;
     if (GQ.includes("dbg")) window.__office = { renderer, scene, camera, THREE }; // measurement hook only
-    applyScale(SCALES.includes(parseFloat(localStorage.getItem(QUALITY_KEY) || "")) ? parseFloat(localStorage.getItem(QUALITY_KEY)) : 0.75);
+    motionScale = SCALES.includes(parseFloat(localStorage.getItem(QUALITY_KEY) || "")) ? parseFloat(localStorage.getItem(QUALITY_KEY)) : 0.85;
+    applyScale(motionScale);
     ready = true;
     introStart = performance.now();
     view.classList.add("office-ready");
